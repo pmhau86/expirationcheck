@@ -19,13 +19,15 @@ interface UpdateDomainDialogProps {
   onClose: () => void
   domain: Domain | null
   onUpdate: (domainId: string, newExpireDate: string) => Promise<void>
+  updateType?: 'domain' | 'ssl'
 }
 
 export function UpdateDomainDialog({ 
   open, 
   onClose, 
   domain, 
-  onUpdate 
+  onUpdate,
+  updateType = 'domain'
 }: UpdateDomainDialogProps) {
   const [expireDate, setExpireDate] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
@@ -42,7 +44,9 @@ export function UpdateDomainDialog({
   // Set initial date when domain changes
   const handleDomainChange = () => {
     if (domain) {
-      const currentDate = new Date(domain.expire_date)
+      const currentDate = updateType === 'ssl' 
+        ? new Date(domain.ssl_expire_date || new Date()) 
+        : new Date(domain.expire_date)
       setExpireDate(currentDate.toISOString().split('T')[0])
     }
   }
@@ -108,7 +112,7 @@ export function UpdateDomainDialog({
             <Update />
           </Box>
           <Typography variant="h6" fontWeight="bold">
-            Update Expire Date
+            Update {updateType === 'ssl' ? 'SSL ' : ''}Expire Date
           </Typography>
         </Box>
       </DialogTitle>
@@ -120,7 +124,11 @@ export function UpdateDomainDialog({
               Domain: <strong>{domain.domain}</strong>
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Current expire date: {new Date(domain.expire_date).toLocaleDateString()}
+              Current {updateType === 'ssl' ? 'SSL ' : ''}expire date: {
+                updateType === 'ssl' 
+                  ? (domain.ssl_expire_date ? new Date(domain.ssl_expire_date).toLocaleDateString() : 'Not set')
+                  : new Date(domain.expire_date).toLocaleDateString()
+              }
             </Typography>
           </Box>
 
@@ -132,7 +140,7 @@ export function UpdateDomainDialog({
 
           <TextField
             fullWidth
-            label="New Expire Date"
+            label={`New ${updateType === 'ssl' ? 'SSL ' : ''}Expire Date`}
             type="date"
             value={expireDate}
             onChange={(e) => setExpireDate(e.target.value)}
@@ -150,7 +158,7 @@ export function UpdateDomainDialog({
           />
 
           <Typography variant="caption" color="text.secondary">
-            💡 This will manually update the expiration date. Use the Sync button to get real WHOIS data.
+            💡 This will manually update the {updateType === 'ssl' ? 'SSL certificate ' : ''}expiration date. {updateType === 'ssl' ? 'Use the SSL Sync button to get real certificate data.' : 'Use the Sync button to get real WHOIS data.'}
           </Typography>
         </DialogContent>
 

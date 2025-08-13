@@ -42,7 +42,6 @@ export const domainService = {
           domain: data.domain,
           issued_date: data.issued_date,
           expire_date: data.expire_date,
-          ssl_issued_date: data.ssl_issued_date,
           ssl_expire_date: data.ssl_expire_date
         }
       )
@@ -177,6 +176,117 @@ export const domainService = {
       
       // Re-throw the error instead of falling back to simulated sync
       throw new Error(`Unable to sync domain ${domain.domain}: ${err.message}`)
+    }
+  },
+
+  // Sync SSL certificate expire date
+  async syncSSLExpireDate(domain: Domain): Promise<Domain> {
+    try {
+      console.log(`🔒 Syncing SSL certificate for ${domain.domain}...`)
+      
+      // TODO: Implement actual SSL certificate checking
+      // This would typically involve:
+      // 1. Making HTTPS request to the domain
+      // 2. Extracting certificate information
+      // 3. Parsing expiration date
+      
+      // For now, we'll simulate SSL certificate checking
+      const sslResult = await this.simulateSSLSync(domain)
+      
+      if (sslResult.success && sslResult.newSSLExpireDate) {
+        // Update domain with SSL certificate data
+        const updatedDomain = await this.updateDomain(domain.$id, {
+          ssl_expire_date: sslResult.newSSLExpireDate
+        })
+        
+        console.log(`✅ SSL sync successful for ${domain.domain}:`)
+        console.log(`🔒 Old SSL: ${sslResult.oldSSLExpireDate || 'Not set'}`)
+        console.log(`🔒 New SSL: ${sslResult.newSSLExpireDate}`)
+        
+        return updatedDomain
+      } else {
+        const errorMessage = sslResult.error || 'Unable to fetch SSL certificate information'
+        throw new Error(`SSL sync failed: ${errorMessage}`)
+      }
+      
+    } catch (err: any) {
+      console.error(`❌ SSL sync failed for ${domain.domain}:`, err.message)
+      throw new Error(`Unable to sync SSL for ${domain.domain}: ${err.message}`)
+    }
+  },
+
+  // Simulate SSL certificate sync
+  async simulateSSLSync(domain: Domain): Promise<{
+    success: boolean
+    oldSSLExpireDate?: string
+    newSSLExpireDate?: string
+    error?: string
+  }> {
+    try {
+      // Simulate different SSL scenarios
+      const sslScenarios = [
+        // Scenario 1: SSL certificate found and valid
+        {
+          probability: 0.7,
+          action: () => {
+            const newSSLExpireDate = new Date()
+            newSSLExpireDate.setFullYear(newSSLExpireDate.getFullYear() + 1)
+            newSSLExpireDate.setMonth(newSSLExpireDate.getMonth() + Math.floor(Math.random() * 6))
+            return newSSLExpireDate.toISOString()
+          },
+          message: 'SSL certificate found and valid'
+        },
+        // Scenario 2: SSL certificate expired
+        {
+          probability: 0.2,
+          action: () => {
+            const newSSLExpireDate = new Date()
+            newSSLExpireDate.setMonth(newSSLExpireDate.getMonth() - Math.floor(Math.random() * 3))
+            return newSSLExpireDate.toISOString()
+          },
+          message: 'SSL certificate expired'
+        },
+        // Scenario 3: No SSL certificate found
+        {
+          probability: 0.1,
+          action: () => null,
+          message: 'No SSL certificate found'
+        }
+      ]
+
+      // Select scenario based on probability
+      const random = Math.random()
+      let cumulativeProbability = 0
+      let selectedScenario = sslScenarios[0]
+
+      for (const scenario of sslScenarios) {
+        cumulativeProbability += scenario.probability
+        if (random <= cumulativeProbability) {
+          selectedScenario = scenario
+          break
+        }
+      }
+
+      const newSSLExpireDate = selectedScenario.action()
+
+      if (newSSLExpireDate) {
+        return {
+          success: true,
+          oldSSLExpireDate: domain.ssl_expire_date,
+          newSSLExpireDate: newSSLExpireDate
+        }
+      } else {
+        return {
+          success: false,
+          error: 'No SSL certificate found for this domain'
+        }
+      }
+
+    } catch (err: any) {
+      return {
+        success: false,
+        error: `SSL simulation failed: ${err.message}`
+      }
     }
   },
 

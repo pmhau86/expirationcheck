@@ -127,6 +127,54 @@ export function DomainListPage() {
     }
   }
 
+  const handleSSLUpdateDomain = async (domain: Domain) => {
+    try {
+      // Update domain with new SSL expire date
+      const updatedDomain = await domainService.updateDomain(domain.$id, {
+        ssl_expire_date: domain.ssl_expire_date
+      })
+      
+      console.log(`✅ SSL manual update completed for ${domain.domain}`)
+      alert(`✅ SSL expire date updated for "${domain.domain}"!\n\nNew SSL expire date: ${new Date(updatedDomain.ssl_expire_date).toLocaleDateString()}`)
+      
+      // Refresh data to show updated information
+      await loadData()
+      
+    } catch (error: any) {
+      console.error('Error updating SSL domain:', error)
+      alert(`❌ Error updating SSL for "${domain.domain}": ${error.message}`)
+    }
+  }
+
+  const handleSSLSyncDomain = async (domain: Domain) => {
+    try {
+      // Show loading state
+      console.log(`🔄 Syncing SSL expire date for ${domain.domain}...`)
+      
+      // Call SSL sync service
+      const syncedDomain = await domainService.syncSSLExpireDate(domain)
+      
+      // Check if SSL expire date actually changed
+      const oldSSLExpireDate = domain.ssl_expire_date ? new Date(domain.ssl_expire_date) : null
+      const newSSLExpireDate = new Date(syncedDomain.ssl_expire_date)
+      
+      if (!oldSSLExpireDate || oldSSLExpireDate.getTime() !== newSSLExpireDate.getTime()) {
+        // SSL expire date changed - show success message
+        alert(`🔄 SSL sync completed for "${domain.domain}"!\n\nOld SSL expire date: ${oldSSLExpireDate ? oldSSLExpireDate.toLocaleDateString() : 'Not set'}\nNew SSL expire date: ${newSSLExpireDate.toLocaleDateString()}`)
+      } else {
+        // No change - still show confirmation
+        alert(`✅ SSL sync completed for "${domain.domain}"!\n\nSSL expire date confirmed: ${newSSLExpireDate.toLocaleDateString()}`)
+      }
+      
+      // Refresh data to show updated information
+      await loadData()
+      
+    } catch (error: any) {
+      console.error('Error syncing SSL domain:', error)
+      alert(`❌ Error syncing SSL for "${domain.domain}": ${error.message}`)
+    }
+  }
+
   // const handleViewWhois = (domain: Domain) => {
   //   setSelectedDomain(domain)
   //   setWhoisDialogOpen(true)
@@ -365,6 +413,8 @@ export function DomainListPage() {
           onSync={handleSyncDomain}
           onUpdate={handleUpdateDomain}
           onDelete={handleDeleteDomain}
+          onSSLUpdate={handleSSLUpdateDomain}
+          onSSLSync={handleSSLSyncDomain}
         />
 
         {/* Add Domain Form */}

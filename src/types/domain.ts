@@ -3,7 +3,6 @@ export interface Domain {
   domain: string
   issued_date: string
   expire_date: string
-  ssl_issued_date: string
   ssl_expire_date: string
   $createdAt: string
   $updatedAt: string
@@ -20,6 +19,5 @@ export interface CreateDomainData {
   domain: string
   issued_date: string
   expire_date: string
-  ssl_issued_date: string
   ssl_expire_date: string
 }
