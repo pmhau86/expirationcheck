@@ -21,7 +21,9 @@ export function AddDomainForm({ onDomainAdded, isOpen, onClose }: AddDomainFormP
   const [formData, setFormData] = useState<CreateDomainData>({
     domain: '',
     issued_date: '',
-    expire_date: ''
+    expire_date: '',
+    ssl_issued_date: '',
+    ssl_expire_date: ''
   })
   
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -76,7 +78,9 @@ export function AddDomainForm({ onDomainAdded, isOpen, onClose }: AddDomainFormP
       await domainService.createDomain({
         domain: formData.domain.trim().toLowerCase(),
         issued_date: new Date(formData.issued_date).toISOString(),
-        expire_date: new Date(formData.expire_date).toISOString()
+        expire_date: new Date(formData.expire_date).toISOString(),
+        ssl_issued_date: formData.ssl_issued_date ? new Date(formData.ssl_issued_date).toISOString() : '',
+        ssl_expire_date: formData.ssl_expire_date ? new Date(formData.ssl_expire_date).toISOString() : ''
       })
       
       setSuccess(`✅ Domain "${formData.domain}" has been added successfully!`)
@@ -85,7 +89,9 @@ export function AddDomainForm({ onDomainAdded, isOpen, onClose }: AddDomainFormP
       setFormData({
         domain: '',
         issued_date: '',
-        expire_date: ''
+        expire_date: '',
+        ssl_issued_date: '',
+        ssl_expire_date: ''
       })
       
       // Notify parent to refresh the list
@@ -154,7 +160,7 @@ export function AddDomainForm({ onDomainAdded, isOpen, onClose }: AddDomainFormP
         </Grid>
 
         {/* Expire Date Input */}
-        <Grid item xs={12} md={3}>
+        <Grid item xs={12} md={2}>
           <TextField
             name="expire_date"
             label="Expiration Date"
@@ -163,6 +169,48 @@ export function AddDomainForm({ onDomainAdded, isOpen, onClose }: AddDomainFormP
             onChange={handleInputChange}
             disabled={isSubmitting}
             required
+            fullWidth
+            size="small"
+            InputLabelProps={{
+              shrink: true,
+            }}
+            InputProps={{
+              startAdornment: <DateRange color="action" sx={{ mr: 1 }} />,
+            }}
+            sx={{ '& .MuiInputBase-root': { fontSize: '0.875rem' } }}
+          />
+        </Grid>
+
+        {/* SSL Issued Date Input */}
+        <Grid item xs={12} md={2}>
+          <TextField
+            name="ssl_issued_date"
+            label="SSL Issue Date"
+            type="date"
+            value={formData.ssl_issued_date}
+            onChange={handleInputChange}
+            disabled={isSubmitting}
+            fullWidth
+            size="small"
+            InputLabelProps={{
+              shrink: true,
+            }}
+            InputProps={{
+              startAdornment: <DateRange color="action" sx={{ mr: 1 }} />,
+            }}
+            sx={{ '& .MuiInputBase-root': { fontSize: '0.875rem' } }}
+          />
+        </Grid>
+
+        {/* SSL Expire Date Input */}
+        <Grid item xs={12} md={2}>
+          <TextField
+            name="ssl_expire_date"
+            label="SSL Expiration Date"
+            type="date"
+            value={formData.ssl_expire_date}
+            onChange={handleInputChange}
+            disabled={isSubmitting}
             fullWidth
             size="small"
             InputLabelProps={{

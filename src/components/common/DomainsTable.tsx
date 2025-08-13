@@ -36,7 +36,7 @@ interface DomainsTableProps {
 }
 
 type SortOrder = 'asc' | 'desc'
-type SortField = 'domain' | 'issued_date' | 'expire_date' | 'status' | 'days_left'
+type SortField = 'domain' | 'issued_date' | 'expire_date' | 'ssl_issued_date' | 'ssl_expire_date' | 'status' | 'days_left'
 
 export function DomainsTable({ domains, onSync, onUpdate, onDelete }: DomainsTableProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
@@ -175,6 +175,14 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete }: DomainsTab
         aValue = new Date(a.expire_date)
         bValue = new Date(b.expire_date)
         break
+      case 'ssl_issued_date':
+        aValue = new Date(a.ssl_issued_date || '1970-01-01')
+        bValue = new Date(b.ssl_issued_date || '1970-01-01')
+        break
+      case 'ssl_expire_date':
+        aValue = new Date(a.ssl_expire_date || '1970-01-01')
+        bValue = new Date(b.ssl_expire_date || '1970-01-01')
+        break
       case 'status':
         aValue = getStatusInfo(a).status
         bValue = getStatusInfo(b).status
@@ -277,6 +285,26 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete }: DomainsTab
               </TableCell>
               <TableCell>
                 <TableSortLabel
+                  active={sortField === 'ssl_issued_date'}
+                  direction={sortField === 'ssl_issued_date' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('ssl_issued_date')}
+                  sx={{ fontWeight: 'bold' }}
+                >
+                  🔒 SSL Issued
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={sortField === 'ssl_expire_date'}
+                  direction={sortField === 'ssl_expire_date' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('ssl_expire_date')}
+                  sx={{ fontWeight: 'bold' }}
+                >
+                  🔒 SSL Expires
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel
                   active={sortField === 'days_left'}
                   direction={sortField === 'days_left' ? sortOrder : 'asc'}
                   onClick={() => handleSort('days_left')}
@@ -359,6 +387,24 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete }: DomainsTab
                         fontWeight={statusInfo.color === 'error' ? 700 : 400}
                       >
                         {formatDate(domain.expire_date)}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  
+                  <TableCell>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {domain.ssl_issued_date ? formatDate(domain.ssl_issued_date) : '-'}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                  
+                  <TableCell>
+                    <Box display="flex" alignItems="center" gap={1}>
+                      <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {domain.ssl_expire_date ? formatDate(domain.ssl_expire_date) : '-'}
                       </Typography>
                     </Box>
                   </TableCell>

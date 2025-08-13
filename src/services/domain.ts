@@ -41,7 +41,9 @@ export const domainService = {
         {
           domain: data.domain,
           issued_date: data.issued_date,
-          expire_date: data.expire_date
+          expire_date: data.expire_date,
+          ssl_issued_date: data.ssl_issued_date,
+          ssl_expire_date: data.ssl_expire_date
         }
       )
       return res as unknown as Domain
