@@ -12,8 +12,8 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'http://localhost:5174',
-    'http://192.168.10.239:5173',
-    'http://192.168.10.239:5174',
+    import.meta.env.MY_IP + ':5173',
+    import.meta.env.MY_IP + ':5174',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:5174'
   ],
@@ -32,10 +32,10 @@ function parseWhoisOutput(output) {
     createdDate: null,
     updatedDate: null
   }
-  
+
   for (const line of lines) {
     const lowerLine = line.toLowerCase()
-    
+
     // Extract expiration date
     if (lowerLine.includes('expiration date') || lowerLine.includes('expires') || lowerLine.includes('expiry')) {
       const match = line.match(/(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}|\d{2}-\d{2}-\d{4})/)
@@ -43,7 +43,7 @@ function parseWhoisOutput(output) {
         data.expireDate = parseDate(match[1])
       }
     }
-    
+
     // Extract registrar
     if (lowerLine.includes('registrar') && !data.registrar) {
       const match = line.match(/registrar:\s*(.+)/i)
@@ -51,7 +51,7 @@ function parseWhoisOutput(output) {
         data.registrar = match[1].trim()
       }
     }
-    
+
     // Extract status
     if (lowerLine.includes('status') && !data.status) {
       const match = line.match(/status:\s*(.+)/i)
@@ -59,7 +59,7 @@ function parseWhoisOutput(output) {
         data.status = match[1].trim()
       }
     }
-    
+
     // Extract creation date
     if (lowerLine.includes('creation date') || lowerLine.includes('created')) {
       const match = line.match(/(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}|\d{2}-\d{2}-\d{4})/)
@@ -67,7 +67,7 @@ function parseWhoisOutput(output) {
         data.createdDate = parseDate(match[1])
       }
     }
-    
+
     // Extract updated date
     if (lowerLine.includes('updated date') || lowerLine.includes('last modified')) {
       const match = line.match(/(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}|\d{2}-\d{2}-\d{4})/)
@@ -76,7 +76,7 @@ function parseWhoisOutput(output) {
       }
     }
   }
-  
+
   return data
 }
 
@@ -93,19 +93,19 @@ function parseDate(dateStr) {
         const year = parts.find(p => p.length === 4)
         const month = parts.find(p => p.length <= 2 && parseInt(p) <= 12)
         const day = parts.find(p => p.length <= 2 && parseInt(p) <= 31)
-        
+
         if (year && month && day) {
           return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toISOString()
         }
       }
     }
-    
+
     // Try direct parsing
     const date = new Date(dateStr)
     if (!isNaN(date.getTime())) {
       return date.toISOString()
     }
-    
+
     return null
   } catch (error) {
     console.log(`Failed to parse date: ${dateStr}`, error.message)
@@ -116,7 +116,7 @@ function parseDate(dateStr) {
 // WHOIS check endpoint
 app.get('/api/whois-check/:domain', async (req, res) => {
   const { domain } = req.params
-  
+
   if (!domain) {
     return res.status(400).json({
       success: false,
@@ -126,23 +126,23 @@ app.get('/api/whois-check/:domain', async (req, res) => {
 
   try {
     console.log(`🔍 Checking WHOIS for: ${domain}`)
-    
+
     // Clean domain name
     const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '')
-    
+
     // Try to use whois command
     try {
       console.log(`🔍 Running whois command for ${cleanDomain}`)
       const { stdout, stderr } = await execAsync(`whois ${cleanDomain}`, { timeout: 10000 })
-      
+
       if (stderr && !stderr.includes('No match')) {
         console.log(`⚠️ WHOIS stderr: ${stderr}`)
       }
-      
+
       if (stdout) {
         console.log(`✅ WHOIS command successful for ${cleanDomain}`)
         const whoisData = parseWhoisOutput(stdout)
-        
+
         // Fill in missing data with defaults
         if (!whoisData.expireDate) {
           whoisData.expireDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
@@ -159,11 +159,11 @@ app.get('/api/whois-check/:domain', async (req, res) => {
         if (!whoisData.updatedDate) {
           whoisData.updatedDate = new Date().toISOString()
         }
-        
+
         whoisData.note = 'Real WHOIS data from command'
-        
+
         console.log(`✅ Final WHOIS data for ${cleanDomain}:`, whoisData)
-        
+
         return res.json({
           success: true,
           domain: cleanDomain,
@@ -173,12 +173,12 @@ app.get('/api/whois-check/:domain', async (req, res) => {
     } catch (whoisError) {
       console.log(`❌ WHOIS command failed for ${cleanDomain}:`, whoisError.message)
     }
-    
+
     // Fallback to simulated data
     console.log(`🔄 Using fallback data for ${cleanDomain}`)
     const fallbackData = getSimulatedWhoisData(cleanDomain)
     fallbackData.note = 'WHOIS command not available - using simulated data'
-    
+
     res.json({
       success: true,
       domain: cleanDomain,
@@ -187,10 +187,10 @@ app.get('/api/whois-check/:domain', async (req, res) => {
 
   } catch (error) {
     console.error(`❌ WHOIS check failed for ${domain}:`, error.message)
-    
+
     // Final fallback
     const fallbackData = getSimulatedWhoisData(domain)
-    
+
     res.json({
       success: true,
       domain: domain.replace(/^(https?:\/\/)?(www\.)?/, ''),
@@ -203,14 +203,14 @@ app.get('/api/whois-check/:domain', async (req, res) => {
 // Fallback simulated data
 function getSimulatedWhoisData(domain) {
   console.log(`🔄 Using simulated WHOIS data for ${domain}`)
-  
+
   const now = new Date()
   const domainHash = domain.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
   const daysToAdd = (domainHash % 365) + 30
-  
+
   const expireDate = new Date(now)
   expireDate.setDate(expireDate.getDate() + daysToAdd)
-  
+
   return {
     expireDate: expireDate.toISOString(),
     registrar: 'Simulated Registrar',
@@ -235,6 +235,6 @@ app.get('/health', (req, res) => {
 app.listen(PORT, HOST, () => {
   console.log(`🚀 WHOIS API Server (Real) running on http://${HOST}:${PORT}`)
   console.log(`📡 WHOIS check endpoint: http://${HOST}:${PORT}/api/whois-check/:domain`)
-  console.log(`🌐 Access from your IP: http://192.168.10.239:${PORT}`)
+  console.log(`🌐 Access from your IP: http://${import.meta.env.MY_IP}:${PORT}`)
 })
 

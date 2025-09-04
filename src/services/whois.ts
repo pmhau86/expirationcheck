@@ -15,13 +15,13 @@ export const whoisService = {
     try {
       // Remove protocol and www if present
       const cleanDomain = domain.replace(/^(https?:\/\/)?(www\.)?/, '')
-      
+
       console.log(`🔍 Querying WHOIS for: ${cleanDomain}`)
-      
+
       // Use local WHOIS API server (free)
       console.log(`🔍 Calling local WHOIS API for ${cleanDomain}`)
-      
-      const response = await fetch(`http://192.168.10.239:3003/api/whois-check/${cleanDomain}`, {
+
+      const response = await fetch(`http://${import.meta.env.MY_IP}:3003/api/whois-check/${cleanDomain}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -33,7 +33,7 @@ export const whoisService = {
       }
 
       const data = await response.json()
-      
+
       if (!data.success) {
         throw new Error(data.error || 'WHOIS check failed')
       }
@@ -41,7 +41,7 @@ export const whoisService = {
       console.log(`✅ WHOIS API result for ${cleanDomain}:`, data)
       console.log(`📅 Expire date from API:`, data.expireDate)
       console.log(`📅 Expire date type:`, typeof data.expireDate)
-      
+
       return {
         domain: cleanDomain,
         expireDate: data.expireDate,
@@ -54,7 +54,7 @@ export const whoisService = {
 
     } catch (error: any) {
       console.error(`❌ WHOIS query failed for ${domain}:`, error.message)
-      
+
       // Fallback to simulated data if WHOIS fails
       return this.getSimulatedWhoisData(domain)
     }
@@ -63,7 +63,7 @@ export const whoisService = {
   // Parse WHOIS date format
   parseWhoisDate(dateString: string | null): string | null {
     if (!dateString) return null
-    
+
     try {
       const date = new Date(dateString)
       if (isNaN(date.getTime())) return null
@@ -76,15 +76,15 @@ export const whoisService = {
   // Fallback to simulated data when WHOIS API is unavailable
   getSimulatedWhoisData(domain: string) {
     console.log(`🔄 Using simulated WHOIS data for ${domain}`)
-    
+
     const now = new Date()
     // Create different expire dates based on domain hash for testing
     const domainHash = domain.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
     const daysToAdd = (domainHash % 365) + 30 // 30-395 days from now
-    
+
     const expireDate = new Date(now)
     expireDate.setDate(expireDate.getDate() + daysToAdd)
-    
+
     return {
       domain: domain.replace(/^(https?:\/\/)?(www\.)?/, ''),
       expireDate: expireDate.toISOString(),
@@ -107,9 +107,9 @@ export const whoisService = {
   }> {
     try {
       console.log(`🔄 Syncing ${domain.domain} with WHOIS...`)
-      
+
       const whoisData = await this.getDomainWhois(domain.domain)
-      
+
       const result = {
         success: true,
         oldExpireDate: domain.expire_date,
@@ -129,7 +129,7 @@ export const whoisService = {
 
     } catch (error: any) {
       console.error(`❌ WHOIS sync failed for ${domain.domain}:`, error.message)
-      
+
       return {
         success: false,
         oldExpireDate: domain.expire_date,
@@ -178,7 +178,7 @@ export const whoisService = {
     for (const domain of domains) {
       try {
         const syncResult = await this.syncDomainWithWhois(domain)
-        
+
         if (syncResult.success && syncResult.newExpireDate) {
           results.success.push({
             domain,

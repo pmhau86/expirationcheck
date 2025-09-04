@@ -6,7 +6,7 @@ console.log('🔧 Appwrite Config:', {
 })
 
 const client = new Client()
-  .setEndpoint('http://192.168.10.239:3001/appwrite')
+  .setEndpoint(import.meta.env.VITE_APPWRITE_ENDPOINT || 'http://' + import.meta.env.MY_IP + ':3001/appwrite')
   .setProject(import.meta.env.VITE_APPWRITE_PROJECT_ID || '68b16e260029530463c0')
 
 export const databases = new Databases(client)

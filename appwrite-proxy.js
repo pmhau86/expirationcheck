@@ -8,7 +8,7 @@ const PORT = 3002;
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://192.168.10.239:5173',
+    import.meta.env.MY_IP + ':5173',
     'http://127.0.0.1:5173'
   ],
   credentials: true
@@ -20,9 +20,9 @@ app.use(express.json());
 app.use('/appwrite', async (req, res) => {
   try {
     const targetUrl = `http://192.168.10.32:8080/v1${req.path.replace('/appwrite', '')}`;
-    
+
     console.log(`🔄 Proxying: ${req.method} ${req.path} -> ${targetUrl}`);
-    
+
     const response = await fetch(targetUrl, {
       method: req.method,
       headers: {
@@ -33,17 +33,17 @@ app.use('/appwrite', async (req, res) => {
     });
 
     const data = await response.json();
-    
+
     console.log(`✅ Response: ${response.status} for ${req.path}`);
-    
+
     // Add CORS headers to bypass the issue
-    res.setHeader('Access-Control-Allow-Origin', 'http://192.168.10.239:5173');
+    res.setHeader('Access-Control-Allow-Origin', 'http://' + import.meta.env.MY_IP + ':5173');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
+
     res.status(response.status).json(data);
-    
+
   } catch (error) {
     console.error(`❌ Proxy error for ${req.path}:`, error.message);
     res.status(500).json({ error: 'Proxy error', message: error.message });
@@ -52,8 +52,8 @@ app.use('/appwrite', async (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Appwrite Proxy Server is running',
     target: 'http://192.168.10.32:8080'
   });
@@ -63,5 +63,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Appwrite Proxy Server running on http://0.0.0.0:${PORT}`);
   console.log(`📡 Proxy endpoint: http://0.0.0.0:${PORT}/appwrite/*`);
   console.log(`🎯 Target: http://192.168.10.32:8080`);
-  console.log(`🌐 Access from your IP: http://192.168.10.239:${PORT}`);
+  console.log(`🌐 Access from your IP: http://${import.meta.env.MY_IP}:${PORT}`);
 });

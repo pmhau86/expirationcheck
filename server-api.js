@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import tls from 'tls';
 import fetch from 'node-fetch';
+import 'dotenv/config';
 
 const app = express();
 const PORT = 3001;
@@ -9,7 +10,7 @@ const HOST = '0.0.0.0'; // Bind to all network interfaces
 
 // Enable CORS for all routes with specific origin
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://192.168.10.239:5173'],
+  origin: ['http://localhost:5173', 'http://' + process.env.MY_IP + ':5173'],
   credentials: true
 }));
 app.use(express.json());
@@ -17,7 +18,7 @@ app.use(express.json());
 // SSL Certificate check function using Node.js tls module
 function checkSSLExpire(host, port = 443) {
   return new Promise((resolve, reject) => {
-    const socket = tls.connect(port, host, { 
+    const socket = tls.connect(port, host, {
       servername: host,
       rejectUnauthorized: false // Allow expired certificates
     }, () => {
@@ -28,7 +29,7 @@ function checkSSLExpire(host, port = 443) {
         const now = new Date();
         const validTo = new Date(cert.valid_to);
         const isExpired = validTo < now;
-        
+
         resolve({
           domain: host,
           valid_from: cert.valid_from,
@@ -36,8 +37,8 @@ function checkSSLExpire(host, port = 443) {
           issuer: cert.issuer?.CN || 'Unknown',
           subject: cert.subject?.CN || host,
           isExpired: isExpired,
-          daysUntilExpiry: isExpired ? 
-            Math.floor((validTo - now) / (1000 * 60 * 60 * 24)) : 
+          daysUntilExpiry: isExpired ?
+            Math.floor((validTo - now) / (1000 * 60 * 60 * 24)) :
             Math.floor((validTo - now) / (1000 * 60 * 60 * 24))
         });
       }
@@ -72,7 +73,7 @@ function checkSSLExpire(host, port = 443) {
         reject(err.message || "SSL connection failed");
       }
     });
-    
+
     // Add timeout
     socket.setTimeout(10000, () => {
       socket.destroy();
@@ -86,11 +87,11 @@ app.get('/api/ssl-check/:domain', async (req, res) => {
   try {
     const { domain } = req.params;
     console.log(`🔍 Checking SSL certificate for: ${domain}`);
-    
+
     const sslInfo = await checkSSLExpire(domain);
-    
+
     console.log(`✅ SSL certificate found for ${domain}:`, sslInfo);
-    
+
     const result = {
       domain: sslInfo.domain,
       validTo: new Date(sslInfo.valid_to).toISOString(),
@@ -101,13 +102,13 @@ app.get('/api/ssl-check/:domain', async (req, res) => {
       daysUntilExpiry: sslInfo.daysUntilExpiry,
       success: true
     };
-    
+
     res.json(result);
-    
+
   } catch (error) {
     console.error(`❌ SSL check failed for ${req.params.domain}:`, error.message);
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       domain: req.params.domain,
       error: error.message,
       success: false
@@ -125,14 +126,14 @@ app.get('/test/:domain', async (req, res) => {
   try {
     const { domain } = req.params;
     console.log(`🧪 Testing SSL check for: ${domain}`);
-    
+
     const sslInfo = await checkSSLExpire(domain);
-    
+
     res.json({
       message: 'Test successful',
       data: sslInfo
     });
-    
+
   } catch (error) {
     res.status(500).json({
       message: 'Test failed',
@@ -147,8 +148,8 @@ app.use('/appwrite', async (req, res) => {
     const path = req.path.replace('/appwrite', '');
     const appwriteUrl = `http://192.168.10.32:8080/v1${path}`;
     console.log(`🔄 Proxying to Appwrite: ${req.method} ${appwriteUrl}`);
-    
-     const fetchOptions = {
+
+    const fetchOptions = {
       method: req.method,
       headers: {
         'Content-Type': 'application/json',
@@ -156,14 +157,14 @@ app.use('/appwrite', async (req, res) => {
         'X-Appwrite-Key': process.env.APPWRITE_API_KEY || ''
       }
     };
-    
+
     // Only add body for non-GET requests and when body exists
     if (req.method !== 'GET' && req.body && Object.keys(req.body).length > 0) {
       fetchOptions.body = JSON.stringify(req.body);
     }
-    
+
     const response = await fetch(appwriteUrl, fetchOptions);
-    
+
     // Handle different response types
     let data;
     const contentType = response.headers.get('content-type');
@@ -172,10 +173,10 @@ app.use('/appwrite', async (req, res) => {
     } else {
       data = await response.text();
     }
-    
+
     console.log(`✅ Appwrite response: ${response.status}`);
     res.status(response.status).json(data);
-    
+
   } catch (error) {
     console.error('❌ Appwrite proxy error:', error);
     res.status(500).json({ error: 'Proxy error', message: error.message });
@@ -186,5 +187,5 @@ app.listen(PORT, HOST, () => {
   console.log(`🚀 SSL Check API Server running on http://${HOST}:${PORT}`);
   console.log(`📡 SSL check endpoint: http://${HOST}:${PORT}/api/ssl-check/:domain`);
   console.log(`🧪 Test endpoint: http://${HOST}:${PORT}/test/:domain`);
-  console.log(`🌐 Access from your IP: http://192.168.10.239:${PORT}`);
+  console.log(`🌐 Access from your IP: http://${process.env.MY_IP}:${PORT}`);
 });

@@ -15,12 +15,12 @@ export const sslService = {
     try {
       // Remove protocol but keep www prefix for SSL checks
       const cleanDomain = domain.replace(/^(https?:\/\/)?/, '')
-      
+
       console.log(`🔒 Checking SSL certificate for: ${cleanDomain} using server API`)
-      
+
       // Use server API to get certificate info
       const sslData = await this.getSSLCertificateInfo(cleanDomain)
-      
+
       if (sslData.error) {
         throw new Error(sslData.error)
       }
@@ -39,7 +39,7 @@ export const sslService = {
 
     } catch (error: any) {
       console.error(`❌ SSL check failed for ${domain}:`, error.message)
-      
+
       return {
         domain: domain.replace(/^(https?:\/\/)?/, ''),
         sslExpireDate: null,
@@ -62,9 +62,9 @@ export const sslService = {
   }> {
     try {
       console.log(`🔧 Calling server API for ${domain}`)
-      
+
       // Call the server API that uses Node.js tls module
-      const response = await fetch(`http://192.168.10.239:3001/api/ssl-check/${domain}`, {
+      const response = await fetch(`http://${import.meta.env.MY_IP}:3001/api/ssl-check/${domain}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -76,13 +76,13 @@ export const sslService = {
       }
 
       const data = await response.json();
-      
+
       if (!data.success) {
         throw new Error(data.error || 'SSL check failed');
       }
 
       console.log(`✅ Server API result for ${domain}:`, data);
-      
+
       return {
         validFrom: data.validFrom,
         validTo: data.validTo,
@@ -99,7 +99,7 @@ export const sslService = {
   // Parse SSL date format
   parseSSLDate(dateString: string | null): string | null {
     if (!dateString) return null
-    
+
     try {
       const date = new Date(dateString)
       if (isNaN(date.getTime())) return null
@@ -120,9 +120,9 @@ export const sslService = {
   }> {
     try {
       console.log(`🔄 Syncing SSL for ${domain.domain}...`)
-      
+
       const sslData = await this.checkSSLCertificate(domain.domain)
-      
+
       const result = {
         success: true,
         oldSSLExpireDate: domain.ssl_expire_date,
@@ -145,7 +145,7 @@ export const sslService = {
 
     } catch (error: any) {
       console.error(`❌ SSL sync failed for ${domain.domain}:`, error.message)
-      
+
       return {
         success: false,
         oldSSLExpireDate: domain.ssl_expire_date,
@@ -194,7 +194,7 @@ export const sslService = {
     for (const domain of domains) {
       try {
         const syncResult = await this.syncSSLWithCertificate(domain)
-        
+
         if (syncResult.success && syncResult.newSSLExpireDate) {
           results.success.push({
             domain,
