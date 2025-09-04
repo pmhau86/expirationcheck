@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  appwrite:
+    image: appwrite/appwrite:1.5.1
+    container_name: appwrite
+    ports:
+      - "8080:80"
+      - "443:443"
+    volumes:
+      - appwrite-uploads:/storage/uploads
+      - appwrite-cache:/storage/cache
+      - appwrite-config:/storage/config
+      - appwrite-certificates:/storage/certificates
+    environment:
+      - _APP_OPENSSL_KEY_V1=your-secret-key-here
+      - _APP_DOMAIN=localhost
+      - _APP_SYSTEM_EMAIL_NAME=Appwrite
+      - _APP_SYSTEM_EMAIL_ADDRESS=system@appwrite.local
+      - _APP_REDIS_HOST=redis
+      - _APP_REDIS_PORT=6379
+      - _APP_DB_HOST=mariadb
+      - _APP_DB_PORT=3306
+      - _APP_DB_SCHEMA=appwrite
+      - _APP_DB_USER=root
+      - _APP_DB_PASS=password
+      - _APP_INFLUXDB_HOST=influxdb
+      - _APP_INFLUXDB_PORT=8086
+      # CORS Configuration
+      - _APP_CORS_ORIGINS=http://localhost:5173,http://192.168.10.239:5173,http://127.0.0.1:5173
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      influxdb:
+        condition: service_started
+    networks:
+      - appwrite
