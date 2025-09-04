@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react'
 import { getUserData } from '@/services/user'
 import type { Models } from 'appwrite'
+import {
+  Container,
+  Typography,
+  Card,
+  CardContent,
+  Button,
+  Grid,
+  Box,
+  TextField
+} from '@mui/material'
+import { Add, Delete } from '@mui/icons-material'
 
 export function UserListPage() {
   const [users, setUsers] = useState<Models.Document[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [filters, setFilters] = useState({ id: '', name: '', email: '' })
+  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFilters({ ...filters, [e.target.name]: e.target.value })
+  }
 
   useEffect(() => {
     fetchData()
@@ -25,38 +40,98 @@ export function UserListPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Đang tải dữ liệu...</div>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <Typography variant="h6">Đang tải dữ liệu...</Typography>
+      </Box>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            <strong>Lỗi:</strong> {error}
-          </div>
-        </div>
-      </div>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Card sx={{ mb: 2 }}>
+          <CardContent>
+            <Typography color="error" variant="body1">{error}</Typography>
+          </CardContent>
+        </Card>
+      </Container>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Danh sách Users
-        </h1>
-        
-        {users.length === 0 ? (
-          <div className="bg-white p-8 rounded-lg shadow-md text-center">
-            <p className="text-gray-600">Chưa có users nào trong hệ thống.</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1">
+          User Dashboard
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          // onClick={handleOpenAddUser}
+          sx={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+            }
+          }}
+        >
+          Thêm mới
+        </Button>
+      </Box>
+
+      {/* Filter Box */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Tìm theo ID"
+                name="id"
+                value={filters.id}
+                onChange={handleFilterChange}
+                fullWidth
+                size="small"
+                variant="outlined"
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Tìm theo tên"
+                name="name"
+                value={filters.name}
+                onChange={handleFilterChange}
+                fullWidth
+                size="small"
+                variant="outlined"
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                label="Tìm theo email"
+                name="email"
+                value={filters.email}
+                onChange={handleFilterChange}
+                fullWidth
+                size="small"
+                variant="outlined"
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Users Table */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Danh sách Users
+          </Typography>
+          {users.length === 0 ? (
+            <Box p={4} textAlign="center">
+              <Typography color="text.secondary">Chưa có users nào trong hệ thống.</Typography>
+            </Box>
+          ) : (
+            <Box sx={{ overflowX: 'auto' }}>
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -71,6 +146,9 @@ export function UserListPage() {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Ngày tạo
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Hành động
                     </th>
                   </tr>
                 </thead>
@@ -89,15 +167,26 @@ export function UserListPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(user.$createdAt).toLocaleDateString('vi-VN')}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          startIcon={<Delete />}
+                        // onClick={() => handleDeleteUser(user.$id)}
+                        >
+                          Xoá
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </Container>
   )
 }
 
