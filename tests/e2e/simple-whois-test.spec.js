@@ -144,3 +144,9 @@ test.describe('🔍 Simple WHOIS Test', () => {
     console.log('🎉 Simple WHOIS test completed!')
   })
 })
+
+
+
+
+
+

@@ -58,3 +58,4 @@ export async function deleteUser(userId: string): Promise<void> {
     throw new Error(`Appwrite Error: ${err.message}`)
   }
 }
+

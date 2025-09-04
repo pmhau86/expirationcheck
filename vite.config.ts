@@ -9,4 +9,8 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  server: {
+    host: '0.0.0.0', // Bind to all network interfaces
+    port: 5173,
+  },
 })

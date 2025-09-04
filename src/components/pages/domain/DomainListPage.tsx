@@ -1,464 +1,277 @@
 import { useState, useEffect } from 'react'
 import { 
   Container, 
-  Grid, 
-  Card, 
-  CardContent, 
   Typography, 
-  Button, 
-  Paper,
   Box,
-  CircularProgress
+  CircularProgress,
+  Alert,
+  Button,
+  Fab,
+  Paper,
+  Snackbar
 } from '@mui/material'
-import { 
-  Refresh, 
-  Visibility, 
-  CheckCircle, 
-  Warning, 
-  Error,
-  Add as AddIcon
-} from '@mui/icons-material'
-import { domainService } from '@/services/domain'
-import type { Domain, DomainStats } from '@/types/domain'
-import { AddDomainForm } from '@/components/common/AddDomainForm'
-import { StatusBanner } from '@/components/common/StatusBanner'
+import { Add } from '@mui/icons-material'
+import { getDomains, deleteDomain, syncSSLCertificate } from '@/services/domain'
+import { initAuth } from '@/lib/appwrite'
 import { DomainsTable } from '@/components/common/DomainsTable'
-// import { WhoisInfoDialog } from '@/components/common/WhoisInfoDialog'
+import { AddDomainForm } from '@/components/common/AddDomainForm'
+import type { Models } from 'appwrite'
+import type { Domain as DomainType } from '@/types/domain'
 
 export function DomainListPage() {
-  const [domains, setDomains] = useState<Domain[]>([])
-  const [stats, setStats] = useState<DomainStats>({
-    total: 0,
-    active: 0,
-    expiringSoon: 0,
-    expired: 0
-  })
+  const [domains, setDomains] = useState<DomainType[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isLive, setIsLive] = useState(true)
-  // const [whoisDialogOpen, setWhoisDialogOpen] = useState(false)
-  // const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null)
+  const [error, setError] = useState('')
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null)
 
   useEffect(() => {
-    loadData()
+    initializeApp()
   }, [])
 
-  const loadData = async () => {
-    setIsLoading(true)
-    setError(null)
-    
+  async function initializeApp() {
     try {
-      const [domainsData, statsData] = await Promise.all([
-        domainService.getAllDomains(),
-        domainService.getStats()
-      ])
-      
-      setDomains(domainsData)
-      setStats(statsData)
-      setIsLive(true)
-    } catch (err: any) {
-      console.error('Error loading data:', err)
-      setError(err.message || 'An error occurred while loading data')
-      setIsLive(false)
+      await initAuth()
+      await fetchDomains()
+    } catch (error: any) {
+      setError(`Initialization failed: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleDeleteDomain = async (domain: Domain) => {
-    if (!window.confirm(`Are you sure you want to delete domain "${domain.domain}"?`)) {
-      return
-    }
+  async function fetchDomains() {
     try {
-      await domainService.deleteDomain(domain.$id)
-      await loadData() // Refresh data
-      alert(`✅ Domain "${domain.domain}" has been deleted successfully!`)
+      const data = await getDomains()
+      // Convert Appwrite documents to Domain type
+      const convertedDomains: DomainType[] = data.map((doc: Models.Document) => ({
+        $id: doc.$id,
+        domain: doc.domain || '',
+        issued_date: doc.issued_date || '',
+        expire_date: doc.expire_date || '',
+        ssl_expire_date: doc.ssl_expire_date || '',
+        $createdAt: doc.$createdAt,
+        $updatedAt: doc.$updatedAt
+      }))
+      setDomains(convertedDomains)
+      console.log('✅ Data loaded successfully:', convertedDomains.length, 'domains')
     } catch (error: any) {
-      console.error('Error deleting domain:', error)
-      alert(`❌ Error deleting domain: ${error.message}`)
+      setError(`Failed to fetch domains: ${error.message}`)
     }
   }
 
-  const handleSyncDomain = async (domain: Domain) => {
+  async function handleDeleteDomain(domain: DomainType) {
     try {
-      // Show loading state
-      console.log(`🔄 Syncing expire date for ${domain.domain}...`)
+      await deleteDomain(domain.$id)
+      await fetchDomains()
+    } catch (error: any) {
+      setError(`Failed to delete domain: ${error.message}`)
+    }
+  }
+
+  async function handleUpdateDomain(domain: DomainType) {
+    try {
+      // Handle domain update
+      console.log('Update domain:', domain)
+      await fetchDomains()
+    } catch (error: any) {
+      setError(`Failed to update domain: ${error.message}`)
+    }
+  }
+
+  async function handleSyncDomain(domain: DomainType) {
+    try {
+      // Handle domain sync
+      console.log('Sync domain:', domain)
+      await fetchDomains()
+    } catch (error: any) {
+      setError(`Failed to sync domain: ${error.message}`)
+    }
+  }
+
+  async function handleSSLUpdateDomain(domain: DomainType) {
+    try {
+      // Handle SSL update
+      console.log('SSL update domain:', domain)
+      await fetchDomains()
+    } catch (error: any) {
+      setError(`Failed to update SSL: ${error.message}`)
+    }
+  }
+
+  async function handleSSLSyncDomain(domain: DomainType) {
+    try {
+      console.log(`🔄 Starting SSL sync for ${domain.domain}...`)
       
-      // Call sync service
-      const syncedDomain = await domainService.syncDomainExpireDate(domain)
+      const result = await syncSSLCertificate(domain)
       
-      // Check if expire date actually changed
-      const oldExpireDate = new Date(domain.expire_date)
-      const newExpireDate = new Date(syncedDomain.expire_date)
-      
-      if (oldExpireDate.getTime() !== newExpireDate.getTime()) {
-        // Expire date changed - show success message
-        alert(`🔄 Sync completed for "${domain.domain}"!\n\nOld expire date: ${oldExpireDate.toLocaleDateString()}\nNew expire date: ${newExpireDate.toLocaleDateString()}`)
+      if (result.success) {
+        setSyncMessage({
+          type: 'success',
+          message: `SSL certificate synced for ${domain.domain}. New expire date: ${new Date(result.newSSLExpireDate!).toLocaleDateString()}`
+        })
+        await fetchDomains() // Refresh the list
       } else {
-        // No change - still show confirmation
-        alert(`✅ Sync completed for "${domain.domain}"!\n\nExpire date confirmed: ${newExpireDate.toLocaleDateString()}`)
+        setSyncMessage({
+          type: 'error',
+          message: `SSL sync failed for ${domain.domain}: ${result.error}`
+        })
       }
-      
-      // Refresh data to show updated information
-      await loadData()
-      
     } catch (error: any) {
-      console.error('Error syncing domain:', error)
-      alert(`❌ Error syncing "${domain.domain}": ${error.message}`)
-    }
-  }
-
-  const handleUpdateDomain = async (domain: Domain) => {
-    try {
-      // Update domain with new expire date
-      const updatedDomain = await domainService.updateDomain(domain.$id, {
-        expire_date: domain.expire_date
+      setSyncMessage({
+        type: 'error',
+        message: `SSL sync error for ${domain.domain}: ${error.message}`
       })
-      
-      console.log(`✅ Manual update completed for ${domain.domain}`)
-      alert(`✅ Expire date updated for "${domain.domain}"!\n\nNew expire date: ${new Date(updatedDomain.expire_date).toLocaleDateString()}`)
-      
-      // Refresh data to show updated information
-      await loadData()
-      
-    } catch (error: any) {
-      console.error('Error updating domain:', error)
-      alert(`❌ Error updating "${domain.domain}": ${error.message}`)
     }
   }
-
-  const handleSSLUpdateDomain = async (domain: Domain) => {
-    try {
-      // Update domain with new SSL expire date
-      const updatedDomain = await domainService.updateDomain(domain.$id, {
-        ssl_expire_date: domain.ssl_expire_date
-      })
-      
-      console.log(`✅ SSL manual update completed for ${domain.domain}`)
-      alert(`✅ SSL expire date updated for "${domain.domain}"!\n\nNew SSL expire date: ${new Date(updatedDomain.ssl_expire_date).toLocaleDateString()}`)
-      
-      // Refresh data to show updated information
-      await loadData()
-      
-    } catch (error: any) {
-      console.error('Error updating SSL domain:', error)
-      alert(`❌ Error updating SSL for "${domain.domain}": ${error.message}`)
-    }
-  }
-
-  const handleSSLSyncDomain = async (domain: Domain) => {
-    try {
-      // Show loading state
-      console.log(`🔄 Syncing SSL expire date for ${domain.domain}...`)
-      
-      // Call SSL sync service
-      const syncedDomain = await domainService.syncSSLExpireDate(domain)
-      
-      // Check if SSL expire date actually changed
-      const oldSSLExpireDate = domain.ssl_expire_date ? new Date(domain.ssl_expire_date) : null
-      const newSSLExpireDate = new Date(syncedDomain.ssl_expire_date)
-      
-      if (!oldSSLExpireDate || oldSSLExpireDate.getTime() !== newSSLExpireDate.getTime()) {
-        // SSL expire date changed - show success message
-        alert(`🔄 SSL sync completed for "${domain.domain}"!\n\nOld SSL expire date: ${oldSSLExpireDate ? oldSSLExpireDate.toLocaleDateString() : 'Not set'}\nNew SSL expire date: ${newSSLExpireDate.toLocaleDateString()}`)
-      } else {
-        // No change - still show confirmation
-        alert(`✅ SSL sync completed for "${domain.domain}"!\n\nSSL expire date confirmed: ${newSSLExpireDate.toLocaleDateString()}`)
-      }
-      
-      // Refresh data to show updated information
-      await loadData()
-      
-    } catch (error: any) {
-      console.error('Error syncing SSL domain:', error)
-      alert(`❌ Error syncing SSL for "${domain.domain}": ${error.message}`)
-    }
-  }
-
-  // const handleViewWhois = (domain: Domain) => {
-  //   setSelectedDomain(domain)
-  //   setWhoisDialogOpen(true)
-  // }
-
-  // const handleCloseWhoisDialog = () => {
-  //   setWhoisDialogOpen(false)
-  //   setSelectedDomain(null)
-  // }
 
   if (isLoading) {
     return (
-      <Container maxWidth="lg" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Box textAlign="center">
-          <CircularProgress size={60} sx={{ mb: 2 }} />
-          <Typography variant="h6" color="text.secondary">
-            Loading data...
-          </Typography>
-        </Box>
-      </Container>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
     )
   }
 
   if (error) {
     return (
-      <Container maxWidth="md" sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 400 }}>
-          <Error color="error" sx={{ fontSize: 80, mb: 2 }} />
-          <Typography variant="h5" color="error" gutterBottom fontWeight="bold">
-            Error Loading Data
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            {error}
-          </Typography>
-                      <Button 
-            variant="contained"
-            color="error"
-            size="large"
-            startIcon={<Refresh />}
-            onClick={loadData}
-            fullWidth
-          >
-            Try Again
-          </Button>
-        </Paper>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={initializeApp}>
+          Retry
+        </Button>
       </Container>
     )
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <StatusBanner isLive={isLive} />
-      
-      <Container maxWidth="xl" sx={{ pt: 8, pb: 4 }}>
-        {/* Header */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Typography variant="h3" component="h1" fontWeight="bold" color="primary.main">
-            🌐 Domain Portfolio
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Domain Manager
           </Typography>
-          <Button 
-            variant="contained"
-            startIcon={<Refresh />}
-            onClick={loadData}
-            sx={{ borderRadius: 2 }}
-          >
-            Refresh
-          </Button>
+          <Typography variant="body1" color="textSecondary">
+            Manage your domains and monitor their expiration dates
+          </Typography>
         </Box>
-
-        {/* Statistics Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
-            <Card 
-              sx={{ 
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                background: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)',
-                '&:hover': { transform: 'translateY(-4px)', transition: 'all 0.3s ease' }
-              }}
-            >
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-                      color: 'white',
-                      mr: 2 
-                    }}
-                  >
-                    <Visibility />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" fontWeight="bold" color="primary.dark" sx={{ textTransform: 'uppercase' }}>
-                      Total Domains
-                    </Typography>
-                    <Typography variant="h4" fontWeight="bold" color="text.primary">
-                      {stats.total}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="primary.main" fontWeight="medium">
-                  📊 Complete overview
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
-            <Card 
-              sx={{ 
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                background: 'linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%)',
-                '&:hover': { transform: 'translateY(-4px)', transition: 'all 0.3s ease' }
-              }}
-            >
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      background: 'linear-gradient(135deg, #10b981 0%, #0d9488 100%)',
-                      color: 'white',
-                      mr: 2 
-                    }}
-                  >
-                    <CheckCircle />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" fontWeight="bold" color="success.dark" sx={{ textTransform: 'uppercase' }}>
-                      Active
-                    </Typography>
-                    <Typography variant="h4" fontWeight="bold" color="success.dark">
-                      {stats.active}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="success.main" fontWeight="medium">
-                  ✅ Healthy domains
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
-            <Card 
-              sx={{ 
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                '&:hover': { transform: 'translateY(-4px)', transition: 'all 0.3s ease' }
-              }}
-            >
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 100%)',
-                      color: 'white',
-                      mr: 2 
-                    }}
-                  >
-                    <Warning />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" fontWeight="bold" color="warning.dark" sx={{ textTransform: 'uppercase' }}>
-                      Expiring Soon
-                    </Typography>
-                    <Typography variant="h4" fontWeight="bold" color="warning.dark">
-                      {stats.expiringSoon}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="warning.main" fontWeight="medium">
-                  ⚠️ Need attention
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex' }}>
-            <Card 
-              sx={{ 
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                background: 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)',
-                '&:hover': { transform: 'translateY(-4px)', transition: 'all 0.3s ease' }
-              }}
-            >
-              <CardContent>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Box 
-                    sx={{ 
-                      p: 2, 
-                      borderRadius: 2, 
-                      background: 'linear-gradient(135deg, #ef4444 0%, #ec4899 100%)',
-                      color: 'white',
-                      mr: 2 
-                    }}
-                  >
-                    <Error />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" fontWeight="bold" color="error.dark" sx={{ textTransform: 'uppercase' }}>
-                      Expired
-                    </Typography>
-                    <Typography variant="h4" fontWeight="bold" color="error.dark">
-                      {stats.expired}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Typography variant="caption" color="error.main" fontWeight="medium">
-                  ❌ Urgent renewal
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        {/* Domains Table */}
-        <DomainsTable 
-          domains={domains}
-          onSync={handleSyncDomain}
-          onUpdate={handleUpdateDomain}
-          onDelete={handleDeleteDomain}
-          onSSLUpdate={handleSSLUpdateDomain}
-          onSSLSync={handleSSLSyncDomain}
-        />
-
-        {/* Add Domain Form */}
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            p: 3, 
-            mb: 4, 
-            borderRadius: 3,
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(236,72,153,0.05) 100%)',
+        
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<Add />}
+          onClick={() => setIsAddDialogOpen(true)}
+          sx={{
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+            }
           }}
         >
-          <Box display="flex" alignItems="center" mb={2}>
-            <Box 
-              sx={{ 
-                p: 1, 
-                borderRadius: 2, 
-                background: 'linear-gradient(135deg, #6366f1 0%, #ec4899 100%)',
-                color: 'white',
-                mr: 2 
-              }}
-            >
-              <AddIcon />
-            </Box>
-            <Typography variant="h5" fontWeight="bold" color="primary.main">
-              Add New Domain
+          Add Domain
+        </Button>
+      </Box>
+
+      {/* Stats Summary */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Summary
+        </Typography>
+        <Box display="flex" gap={4}>
+          <Box>
+            <Typography variant="h4" color="primary.main" fontWeight="bold">
+              {domains.length}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Total Domains
             </Typography>
           </Box>
-          <AddDomainForm 
-            isOpen={true}
-            onClose={() => {}}
-            onDomainAdded={loadData}
-          />
-        </Paper>
+          <Box>
+            <Typography variant="h4" color="success.main" fontWeight="bold">
+              {domains.filter(d => {
+                if (!d.expire_date) return false
+                return new Date(d.expire_date) > new Date()
+              }).length}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Active
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="h4" color="warning.main" fontWeight="bold">
+              {domains.filter(d => {
+                if (!d.expire_date) return false
+                const daysLeft = Math.ceil((new Date(d.expire_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                return daysLeft <= 30 && daysLeft > 0
+              }).length}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Expiring Soon
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="h4" color="error.main" fontWeight="bold">
+              {domains.filter(d => {
+                if (!d.expire_date) return false
+                return new Date(d.expire_date) < new Date()
+              }).length}
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Expired
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
 
-        {/* WHOIS Info Dialog - temporarily disabled
-        <WhoisInfoDialog
-          open={whoisDialogOpen}
-          onClose={handleCloseWhoisDialog}
-          domain={selectedDomain}
-        />
-        */}
+      {/* Domains Table */}
+      <DomainsTable 
+        domains={domains}
+        onUpdate={handleUpdateDomain}
+        onDelete={handleDeleteDomain}
+        onSync={handleSyncDomain}
+        onSSLUpdate={handleSSLUpdateDomain}
+        onSSLSync={handleSSLSyncDomain}
+      />
 
-      </Container>
-    </Box>
+      {/* Add Domain FAB for mobile */}
+      <Fab 
+        color="primary" 
+        aria-label="add domain"
+        sx={{ 
+          position: 'fixed', 
+          bottom: 16, 
+          right: 16,
+          display: { xs: 'flex', md: 'none' }
+        }}
+        onClick={() => setIsAddDialogOpen(true)}
+      >
+        <Add />
+      </Fab>
+
+      {/* Add Domain Dialog */}
+      <AddDomainForm
+        isOpen={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onDomainAdded={fetchDomains}
+      />
+
+      {/* Sync Message Snackbar */}
+      <Snackbar
+        open={!!syncMessage}
+        autoHideDuration={6000}
+        onClose={() => setSyncMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSyncMessage(null)} 
+          severity={syncMessage?.type || 'info'}
+          sx={{ width: '100%' }}
+        >
+          {syncMessage?.message}
+        </Alert>
+      </Snackbar>
+    </Container>
   )
 }

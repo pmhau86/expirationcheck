@@ -40,18 +40,24 @@ src/
    npm install
    ```
 
-2. **Tạo file environment (.env):**
+2. **Tạo file environment (.env.local):**
    ```bash
-   cp .env.example .env
+   # Tạo file .env.local với nội dung sau:
+   VITE_APPWRITE_ENDPOINT=http://192.168.10.32:8080/v1
+   VITE_APPWRITE_PROJECT_ID=68affd86001d4d4305b1
+   VITE_APPWRITE_DB_ID=expiration_check_db
+   VITE_APPWRITE_DOMAINS_COLLECTION_ID=domains
+   VITE_WHOIS_API_KEY=demo
    ```
 
-3. **Cấu hình Appwrite trong .env:**
-   ```env
-   VITE_APPWRITE_ENDPOINT=https://your-appwrite-endpoint.com/v1
-   VITE_APPWRITE_PROJECT_ID=your-project-id
-   VITE_APPWRITE_DB_ID=your-database-id
-   VITE_APPWRITE_USERS_COLLECTION_ID=your-users-collection-id
-   ```
+3. **Cấu hình Appwrite Database:**
+   - **Database ID:** `expiration_check_db`
+   - **Collection ID:** `domains`
+   - **Attributes:**
+     - `domain` (string, required)
+     - `issued_date` (datetime, optional)
+     - `expire_date` (datetime, optional)
+     - `ssl_expire_date` (datetime, optional)
 
 ## 🏃‍♂️ Chạy dự án
 

@@ -157,3 +157,9 @@ app.listen(3001, () => {
 1. **Security:** Anonymous access có thể không an toàn cho production
 2. **Rate limiting:** Appwrite có giới hạn requests per minute
 3. **Data validation:** Nên validate data ở backend nếu dùng API server
+
+
+
+
+
+

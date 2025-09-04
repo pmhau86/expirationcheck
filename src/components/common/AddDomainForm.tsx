@@ -1,249 +1,260 @@
 import { useState } from 'react'
 import { 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogActions, 
   TextField, 
   Button, 
-  Grid, 
-  Box, 
   Alert,
-  CircularProgress
+  CircularProgress,
+  Box,
+  Typography,
+  Grid,
+  Divider
 } from '@mui/material'
-import { Add, Domain, DateRange } from '@mui/icons-material'
-import { domainService } from '@/services/domain'
+import { 
+  Add, 
+  CalendarToday, 
+  Domain,
+  Security
+} from '@mui/icons-material'
+import { createDomain } from '@/services/domain'
 import type { CreateDomainData } from '@/types/domain'
 
 interface AddDomainFormProps {
-  onDomainAdded?: () => void
   isOpen: boolean
   onClose: () => void
+  onDomainAdded: () => void
 }
 
-export function AddDomainForm({ onDomainAdded, isOpen, onClose }: AddDomainFormProps) {
+export function AddDomainForm({ isOpen, onClose, onDomainAdded }: AddDomainFormProps) {
   const [formData, setFormData] = useState<CreateDomainData>({
     domain: '',
     issued_date: '',
     expire_date: '',
     ssl_expire_date: ''
   })
-  
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+  const handleInputChange = (field: keyof CreateDomainData, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [field]: value
     }))
-    // Clear messages when user starts typing
-    if (error) setError(null)
-    if (success) setSuccess(null)
-  }
-
-  const validateForm = (): boolean => {
-    if (!formData.domain.trim()) {
-      setError('Tên domain là bắt buộc')
-      return false
-    }
-    if (!formData.issued_date) {
-      setError('Ngày cấp là bắt buộc')
-      return false
-    }
-    if (!formData.expire_date) {
-      setError('Ngày hết hạn là bắt buộc')
-      return false
-    }
-    
-    const issuedDate = new Date(formData.issued_date)
-    const expireDate = new Date(formData.expire_date)
-    
-    if (expireDate <= issuedDate) {
-      setError('Expiration date must be after issue date')
-      return false
-    }
-    
-    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!validateForm()) return
+    if (!formData.domain.trim()) {
+      setError('Please enter a domain name')
+      return
+    }
 
-    setIsSubmitting(true)
-    setError(null)
+    setIsLoading(true)
+    setError('')
 
     try {
-      await domainService.createDomain({
-        domain: formData.domain.trim().toLowerCase(),
-        issued_date: new Date(formData.issued_date).toISOString(),
-        expire_date: new Date(formData.expire_date).toISOString(),
-        ssl_expire_date: formData.ssl_expire_date ? new Date(formData.ssl_expire_date).toISOString() : ''
-      })
-      
-      setSuccess(`✅ Domain "${formData.domain}" has been added successfully!`)
-      
-      // Reset form
+      await createDomain(formData)
       setFormData({
         domain: '',
         issued_date: '',
         expire_date: '',
         ssl_expire_date: ''
       })
-      
-      // Notify parent to refresh the list
-      if (onDomainAdded) {
-        onDomainAdded()
-      }
-
-      // Close form after success
-      setTimeout(() => {
-        onClose()
-        setSuccess(null)
-      }, 2000)
-      
-    } catch (error: any) {
-      console.error('Error adding domain:', error)
-      setError(`❌ Error adding domain: ${error.message}`)
+      onDomainAdded()
+      onClose()
+    } catch (err: any) {
+      setError(err.message || 'Failed to add domain')
     } finally {
-      setIsSubmitting(false)
+      setIsLoading(false)
     }
   }
 
-  if (!isOpen) return null
+  const handleClose = () => {
+    if (!isLoading) {
+      setFormData({
+        domain: '',
+        issued_date: '',
+        expire_date: '',
+        ssl_expire_date: ''
+      })
+      setError('')
+      onClose()
+    }
+  }
 
   return (
-    <Box component="form" onSubmit={handleSubmit} noValidate>
-      <Grid container spacing={2} alignItems="flex-end">
-        {/* Domain Input */}
-        <Grid item xs={12} md={3}>
-          <TextField
-            name="domain"
-            label="Domain"
-            placeholder="example.com"
-            value={formData.domain}
-            onChange={handleInputChange}
-            disabled={isSubmitting}
-            required
-            fullWidth
-            size="small"
-            InputProps={{
-              startAdornment: <Domain color="action" sx={{ mr: 1 }} />,
-            }}
-            sx={{ '& .MuiInputBase-root': { fontSize: '0.875rem' } }}
-          />
-        </Grid>
-
-        {/* Issued Date Input */}
-        <Grid item xs={12} md={3}>
-          <TextField
-            name="issued_date"
-            label="Issue Date"
-            type="date"
-            value={formData.issued_date}
-            onChange={handleInputChange}
-            disabled={isSubmitting}
-            required
-            fullWidth
-            size="small"
-            InputLabelProps={{
-              shrink: true,
-            }}
-            InputProps={{
-              startAdornment: <DateRange color="action" sx={{ mr: 1 }} />,
-            }}
-            sx={{ '& .MuiInputBase-root': { fontSize: '0.875rem' } }}
-          />
-        </Grid>
-
-        {/* Expire Date Input */}
-        <Grid item xs={12} md={3}>
-          <TextField
-            name="expire_date"
-            label="Expiration Date"
-            type="date"
-            value={formData.expire_date}
-            onChange={handleInputChange}
-            disabled={isSubmitting}
-            required
-            fullWidth
-            size="small"
-            InputLabelProps={{
-              shrink: true,
-            }}
-            InputProps={{
-              startAdornment: <DateRange color="action" sx={{ mr: 1 }} />,
-            }}
-            sx={{ '& .MuiInputBase-root': { fontSize: '0.875rem' } }}
-          />
-        </Grid>
-
-        {/* SSL Expire Date Input */}
-        <Grid item xs={12} md={3}>
-          <TextField
-            name="ssl_expire_date"
-            label="SSL Expiration Date"
-            type="date"
-            value={formData.ssl_expire_date}
-            onChange={handleInputChange}
-            disabled={isSubmitting}
-            fullWidth
-            size="small"
-            InputLabelProps={{
-              shrink: true,
-            }}
-            InputProps={{
-              startAdornment: <DateRange color="action" sx={{ mr: 1 }} />,
-            }}
-            sx={{ '& .MuiInputBase-root': { fontSize: '0.875rem' } }}
-          />
-        </Grid>
-
-        {/* Submit Button */}
-        <Grid item xs={12} md={3}>
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isSubmitting}
-            fullWidth
-            size="medium"
-            startIcon={
-              isSubmitting ? (
-                <CircularProgress size={16} color="inherit" />
-              ) : (
-                <Add />
-              )
-            }
+    <Dialog open={isOpen} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Box 
             sx={{ 
-              py: 1.2,
-              fontSize: '0.875rem',
+              p: 1, 
+              borderRadius: 2, 
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white'
             }}
           >
-            {isSubmitting ? 'Adding...' : 'Add Domain'}
-          </Button>
-        </Grid>
-      </Grid>
-
-      {/* Status Messages */}
-      {error && (
-        <Alert 
-          severity="error" 
-          sx={{ mt: 2, fontSize: '0.875rem' }}
-          onClose={() => setError(null)}
-        >
-          {error}
-        </Alert>
-      )}
+            <Add />
+          </Box>
+          <Typography variant="h6" fontWeight="bold">
+            Add New Domain
+          </Typography>
+        </Box>
+      </DialogTitle>
       
-      {success && (
-        <Alert 
-          severity="success" 
-          sx={{ mt: 2, fontSize: '0.875rem' }}
-          onClose={() => setSuccess(null)}
-        >
-          {success}
-        </Alert>
-      )}
-    </Box>
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <Grid container spacing={3}>
+            {/* Domain Information */}
+            <Grid item xs={12}>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <Domain color="primary" />
+                <Typography variant="h6" fontWeight="bold">
+                  Domain Information
+                </Typography>
+              </Box>
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                autoFocus
+                fullWidth
+                label="Domain Name"
+                type="text"
+                value={formData.domain}
+                onChange={(e) => handleInputChange('domain', e.target.value)}
+                placeholder="example.com"
+                disabled={isLoading}
+                error={!!error && !formData.domain.trim()}
+                helperText={!formData.domain.trim() && error ? error : ''}
+                required
+                InputProps={{
+                  startAdornment: <Domain sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+            </Grid>
+
+            {/* Domain Registration Dates */}
+            <Grid item xs={12}>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <CalendarToday color="primary" />
+                <Typography variant="h6" fontWeight="bold">
+                  Domain Registration Dates
+                </Typography>
+              </Box>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Issued Date"
+                type="date"
+                value={formData.issued_date}
+                onChange={(e) => handleInputChange('issued_date', e.target.value)}
+                disabled={isLoading}
+                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: <CalendarToday sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Expire Date"
+                type="date"
+                value={formData.expire_date}
+                onChange={(e) => handleInputChange('expire_date', e.target.value)}
+                disabled={isLoading}
+                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: <CalendarToday sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Divider sx={{ my: 2 }} />
+            </Grid>
+
+            {/* SSL Certificate Information */}
+            <Grid item xs={12}>
+              <Box display="flex" alignItems="center" gap={1} mb={2}>
+                <Security color="primary" />
+                <Typography variant="h6" fontWeight="bold">
+                  SSL Certificate Information
+                </Typography>
+              </Box>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="SSL Expire Date"
+                type="date"
+                value={formData.ssl_expire_date}
+                onChange={(e) => handleInputChange('ssl_expire_date', e.target.value)}
+                disabled={isLoading}
+                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: <Security sx={{ mr: 1, color: 'text.secondary' }} />
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <Box 
+                sx={{ 
+                  p: 2, 
+                  bgcolor: 'grey.50', 
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'grey.200'
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  💡 <strong>Note:</strong> You can leave SSL dates empty and use the SSL Sync feature later to automatically fetch certificate information.
+                </Typography>
+              </Box>
+            </Grid>
+          </Grid>
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={handleClose} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            disabled={isLoading || !formData.domain.trim()}
+            startIcon={isLoading ? <CircularProgress size={16} /> : <Add />}
+            sx={{ 
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              }
+            }}
+          >
+            {isLoading ? 'Adding...' : 'Add Domain'}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }

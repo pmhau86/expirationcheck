@@ -74,3 +74,9 @@ test.describe('🔍 Quick WHOIS Test', () => {
     console.log('🎉 Quick WHOIS test completed!')
   })
 })
+
+
+
+
+
+

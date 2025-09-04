@@ -14,7 +14,12 @@ import {
   Tooltip,
   TableSortLabel,
   CircularProgress,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button
 } from '@mui/material'
 import { 
   Sync, 
@@ -23,10 +28,12 @@ import {
   Warning, 
   Error,
   CalendarToday,
-  Update
+  Update,
+  Edit
 } from '@mui/icons-material'
 import type { Domain } from '@/types/domain'
 import { UpdateDomainDialog } from './UpdateDomainDialog'
+import { UpdateDateDialog } from './UpdateDateDialog'
 
 interface DomainsTableProps {
   domains: Domain[]
@@ -35,12 +42,13 @@ interface DomainsTableProps {
   onDelete?: (domain: Domain) => Promise<void>
   onSSLUpdate?: (domain: Domain) => Promise<void>
   onSSLSync?: (domain: Domain) => Promise<void>
+  onUpdateDate?: (domainId: string, expireDate: string) => Promise<void>
 }
 
 type SortOrder = 'asc' | 'desc'
 type SortField = 'domain' | 'issued_date' | 'expire_date' | 'ssl_expire_date' | 'status' | 'days_left' | 'ssl_days_left'
 
-export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate, onSSLSync }: DomainsTableProps) {
+export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate, onSSLSync, onUpdateDate }: DomainsTableProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   const [sortField, setSortField] = useState<SortField>('domain')
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
@@ -52,6 +60,9 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
   const [selectedDomain, setSelectedDomain] = useState<Domain | null>(null)
   const [updateType, setUpdateType] = useState<'domain' | 'ssl'>('domain')
   const [syncError, setSyncError] = useState<string | null>(null)
+  const [updateDateDialogOpen, setUpdateDateDialogOpen] = useState(false)
+  const [selectedDomainForDate, setSelectedDomainForDate] = useState<Domain | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const handleSort = (field: SortField) => {
     const isAsc = sortField === field && sortOrder === 'asc'
@@ -60,7 +71,17 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString || dateString === 'Invalid Date' || dateString === 'null' || dateString === 'undefined') {
+      return '-'
+    }
+    
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date string:', dateString)
+      return '-'
+    }
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
@@ -68,7 +89,28 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
   }
 
   const getStatusInfo = (domain: Domain) => {
+    if (!domain.expire_date || domain.expire_date === 'Invalid Date' || domain.expire_date === 'null' || domain.expire_date === 'undefined') {
+      return { 
+        status: 'UNKNOWN', 
+        color: 'default' as const,
+        icon: <Warning />,
+        daysLeft: 0,
+        daysText: 'No expire date'
+      }
+    }
+    
     const expireDate = new Date(domain.expire_date)
+    if (isNaN(expireDate.getTime())) {
+      console.warn('Invalid expire date for domain:', domain.domain, domain.expire_date)
+      return { 
+        status: 'UNKNOWN', 
+        color: 'default' as const,
+        icon: <Warning />,
+        daysLeft: 0,
+        daysText: 'Invalid date'
+      }
+    }
+    
     const now = new Date()
     const isExpired = expireDate < now
     const daysLeft = Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
@@ -142,16 +184,29 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
   const handleDelete = async (domain: Domain) => {
     if (!onDelete) return
     
-    const confirmed = window.confirm(`Are you sure you want to delete domain "${domain.domain}"?`)
-    if (!confirmed) return
+    setSelectedDomain(domain)
+    setDeleteDialogOpen(true)
+  }
 
-    setDeletingIds(prev => new Set(prev).add(domain.$id))
+  const handleDeleteConfirm = async () => {
+    if (!selectedDomain || !onDelete) return
+    
+    setDeletingIds(prev => new Set(prev).add(selectedDomain.$id))
     try {
-      await onDelete(domain)
+      await onDelete(selectedDomain)
+      setDeleteDialogOpen(false)
+      setSelectedDomain(null)
+      // Clear any error messages after successful delete
+      setSyncError(null)
+      // Add a small delay to ensure state updates are processed
+      await new Promise(resolve => setTimeout(resolve, 100))
+    } catch (error: any) {
+      console.error('Delete failed:', error)
+      setSyncError(`Failed to delete domain: ${error.message}`)
     } finally {
       setDeletingIds(prev => {
         const next = new Set(prev)
-        next.delete(domain.$id)
+        next.delete(selectedDomain.$id)
         return next
       })
     }
@@ -175,19 +230,21 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
     }
   }
 
-  const handleUpdate = async (domain: Domain) => {
+  const handleUpdate = async (domain: Domain, field: 'issued_date' | 'expire_date' | 'ssl_expire_date') => {
     setSelectedDomain(domain)
     setUpdateType('domain')
     setUpdateDialogOpen(true)
+    // Store the field type for the dialog
+    ;(window as any).updateField = field
   }
 
-  const handleUpdateSubmit = async (domainId: string, newExpireDate: string) => {
+  const handleUpdateSubmit = async (domainId: string, newDate: string) => {
     if (updateType === 'ssl') {
       if (!onSSLUpdate) return
 
       setSSLUpdatingIds(prev => new Set(prev).add(domainId))
       try {
-        await onSSLUpdate({ ...selectedDomain!, ssl_expire_date: newExpireDate })
+        await onSSLUpdate({ ...selectedDomain!, ssl_expire_date: newDate })
       } finally {
         setSSLUpdatingIds(prev => {
           const next = new Set(prev)
@@ -200,7 +257,21 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
 
       setUpdatingIds(prev => new Set(prev).add(domainId))
       try {
-        await onUpdate({ ...selectedDomain!, expire_date: newExpireDate })
+        // Use the correct field based on what was clicked
+        const updateField = (window as any).updateField || 'expire_date'
+        const updateData = { ...selectedDomain! }
+        if (updateField === 'issued_date') {
+          updateData.issued_date = newDate
+        } else if (updateField === 'expire_date') {
+          updateData.expire_date = newDate
+        } else if (updateField === 'ssl_expire_date') {
+          updateData.ssl_expire_date = newDate
+        }
+        await onUpdate(updateData)
+        
+        // Close dialog after successful update
+        setUpdateDialogOpen(false)
+        setSelectedDomain(null)
       } finally {
         setUpdatingIds(prev => {
           const next = new Set(prev)
@@ -240,6 +311,33 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
   const handleCloseUpdateDialog = () => {
     setUpdateDialogOpen(false)
     setSelectedDomain(null)
+  }
+
+  const handleUpdateDate = (domain: Domain) => {
+    setSelectedDomainForDate(domain)
+    setUpdateDateDialogOpen(true)
+  }
+
+  const handleUpdateDateSubmit = async (domainId: string, expireDate: string) => {
+    if (!onUpdateDate) return
+
+    setUpdatingIds(prev => new Set(prev).add(domainId))
+    try {
+      await onUpdateDate(domainId, expireDate)
+      setUpdateDateDialogOpen(false)
+      setSelectedDomainForDate(null)
+    } finally {
+      setUpdatingIds(prev => {
+        const next = new Set(prev)
+        next.delete(domainId)
+        return next
+      })
+    }
+  }
+
+  const handleCloseUpdateDateDialog = () => {
+    setUpdateDateDialogOpen(false)
+    setSelectedDomainForDate(null)
   }
 
   const sortedDomains = [...domains].sort((a, b) => {
@@ -444,13 +542,38 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                   <TableCell>
                     <Chip
                       label={statusInfo.status}
-                      color={statusInfo.color}
-                      size="small"
                       icon={statusInfo.icon}
-                      sx={{ 
-                        fontSize: '0.75rem', 
+                      size="small"
+                      sx={{
+                        fontSize: '0.75rem',
                         fontWeight: 700,
-                        minWidth: 90
+                        minWidth: 90,
+                        bgcolor:
+                          statusInfo.status === 'EXPIRED'
+                            ? '#fdecea'
+                            : statusInfo.status === 'EXPIRING'
+                            ? '#fff8e1'
+                            : statusInfo.status === 'ACTIVE'
+                            ? '#e8f5e9'
+                            : '#f5f5f5',
+                        color:
+                          statusInfo.status === 'EXPIRED'
+                            ? '#b71c1c'
+                            : statusInfo.status === 'EXPIRING'
+                            ? '#ff8f00'
+                            : statusInfo.status === 'ACTIVE'
+                            ? '#1b5e20'
+                            : '#424242',
+                        border: '1px solid',
+                        borderColor:
+                          statusInfo.status === 'EXPIRED'
+                            ? '#f8bbd0'
+                            : statusInfo.status === 'EXPIRING'
+                            ? '#ffe082'
+                            : statusInfo.status === 'ACTIVE'
+                            ? '#a5d6a7'
+                            : '#e0e0e0',
+                        boxShadow: 'none',
                       }}
                     />
                   </TableCell>
@@ -461,6 +584,32 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                       <Typography variant="body2">
                         {formatDate(domain.issued_date)}
                       </Typography>
+                      <Box display="flex" gap={0.5}>
+                        {/* Issued Date Manual Update Button */}
+                        {onUpdate && (
+                          <Tooltip title="Update issued date manually">
+                            <IconButton
+                              size="small"
+                              color="info"
+                              disabled={isUpdating || isSyncing || isSSLUpdating || isSSLSyncing}
+                              onClick={() => handleUpdate(domain, 'issued_date')}
+                              sx={{ 
+                                '&:hover': { 
+                                  bgcolor: 'info.50',
+                                  transform: 'scale(1.1)',
+                                  transition: 'all 0.2s ease'
+                                }
+                              }}
+                            >
+                              {isUpdating ? (
+                                <CircularProgress size={14} color="info" />
+                              ) : (
+                                <Update fontSize="small" />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
                     </Box>
                   </TableCell>
                   
@@ -482,7 +631,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                               size="small"
                               color="info"
                               disabled={isUpdating || isSyncing}
-                              onClick={() => handleUpdate(domain)}
+                              onClick={() => handleUpdate(domain, 'expire_date')}
                               sx={{ 
                                 '&:hover': { 
                                   bgcolor: 'info.50',
@@ -500,28 +649,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                           </Tooltip>
                         )}
                         
-                        {/* Sync Domain Button */}
-                        <Tooltip title="Sync domain with WHOIS">
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            disabled={isSyncing || isUpdating}
-                            onClick={() => handleSync(domain)}
-                            sx={{ 
-                              '&:hover': { 
-                                bgcolor: 'primary.50',
-                                transform: 'scale(1.1)',
-                                transition: 'all 0.2s ease'
-                              }
-                            }}
-                          >
-                            {isSyncing ? (
-                              <CircularProgress size={14} color="primary" />
-                            ) : (
-                              <Sync fontSize="small" />
-                            )}
-                          </IconButton>
-                        </Tooltip>
+
                       </Box>
                     </Box>
                   </TableCell>
@@ -606,14 +734,14 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                     </Typography>
                   </TableCell>
                   
-                  <TableCell>
+                                    <TableCell>
                     {/* Delete Button */}
                     {onDelete && (
                       <Tooltip title="Delete domain">
                         <IconButton
                           size="small"
                           color="error"
-                                                     disabled={isDeleting || isSyncing || isUpdating || isSSLUpdating || isSSLSyncing}
+                          disabled={isDeleting || isSyncing || isUpdating || isSSLUpdating || isSSLSyncing}
                           onClick={() => handleDelete(domain)}
                           sx={{ 
                             '&:hover': { 
@@ -646,7 +774,75 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
         domain={selectedDomain}
         onUpdate={handleUpdateSubmit}
         updateType={updateType}
+        dateField={(window as any).updateField || 'expire_date'}
       />
+
+      {/* Update Date Dialog */}
+      <UpdateDateDialog
+        open={updateDateDialogOpen}
+        onClose={handleCloseUpdateDateDialog}
+        domain={selectedDomainForDate}
+        onUpdate={handleUpdateDateSubmit}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={2}>
+            <Box 
+              sx={{ 
+                p: 1, 
+                borderRadius: 2, 
+                background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
+                color: 'white'
+              }}
+            >
+              <Delete />
+            </Box>
+            <Typography variant="h6" fontWeight="bold">
+              Delete Domain
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" gutterBottom>
+            Are you sure you want to delete domain <strong>"{selectedDomain?.domain}"</strong>?
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            This action cannot be undone. The domain will be permanently removed from the database.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button 
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={deletingIds.has(selectedDomain?.$id || '')}
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            disabled={deletingIds.has(selectedDomain?.$id || '')}
+            startIcon={deletingIds.has(selectedDomain?.$id || '') ? <CircularProgress size={16} /> : <Delete />}
+            sx={{ 
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%)',
+              }
+            }}
+          >
+            {deletingIds.has(selectedDomain?.$id || '') ? 'Deleting...' : 'Delete Domain'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

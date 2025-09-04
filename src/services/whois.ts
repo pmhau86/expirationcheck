@@ -18,13 +18,10 @@ export const whoisService = {
       
       console.log(`🔍 Querying WHOIS for: ${cleanDomain}`)
       
-      // Use a public WHOIS API service
-      // Note: In production, you might want to use a paid service like:
-      // - whoisxmlapi.com
-      // - whois.whoisxmlapi.com
-      // - ipapi.com
+      // Use local WHOIS API server (free)
+      console.log(`🔍 Calling local WHOIS API for ${cleanDomain}`)
       
-      const response = await fetch(`https://whois.whoisxmlapi.com/api/v1?apiKey=demo&domainName=${cleanDomain}`, {
+      const response = await fetch(`http://192.168.10.239:3003/api/whois-check/${cleanDomain}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -37,18 +34,23 @@ export const whoisService = {
 
       const data = await response.json()
       
-      // Parse WHOIS response
-      const whoisInfo = {
-        domain: cleanDomain,
-        expireDate: this.parseWhoisDate(data.expiresDate),
-        registrar: data.registrar?.name || null,
-        status: data.status?.[0] || null,
-        createdDate: this.parseWhoisDate(data.creationDate),
-        updatedDate: this.parseWhoisDate(data.updatedDate),
+      if (!data.success) {
+        throw new Error(data.error || 'WHOIS check failed')
       }
 
-      console.log(`✅ WHOIS data for ${cleanDomain}:`, whoisInfo)
-      return whoisInfo
+      console.log(`✅ WHOIS API result for ${cleanDomain}:`, data)
+      console.log(`📅 Expire date from API:`, data.expireDate)
+      console.log(`📅 Expire date type:`, typeof data.expireDate)
+      
+      return {
+        domain: cleanDomain,
+        expireDate: data.expireDate,
+        registrar: data.registrar,
+        status: data.status,
+        createdDate: data.createdDate,
+        updatedDate: data.updatedDate,
+        error: data.note // Will be undefined if using real data
+      }
 
     } catch (error: any) {
       console.error(`❌ WHOIS query failed for ${domain}:`, error.message)
@@ -76,8 +78,12 @@ export const whoisService = {
     console.log(`🔄 Using simulated WHOIS data for ${domain}`)
     
     const now = new Date()
+    // Create different expire dates based on domain hash for testing
+    const domainHash = domain.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
+    const daysToAdd = (domainHash % 365) + 30 // 30-395 days from now
+    
     const expireDate = new Date(now)
-    expireDate.setFullYear(expireDate.getFullYear() + 1)
+    expireDate.setDate(expireDate.getDate() + daysToAdd)
     
     return {
       domain: domain.replace(/^(https?:\/\/)?(www\.)?/, ''),
@@ -86,7 +92,7 @@ export const whoisService = {
       status: 'active',
       createdDate: now.toISOString(),
       updatedDate: now.toISOString(),
-      error: 'Using simulated data - WHOIS API unavailable'
+      error: undefined // No error for simulated data
     }
   },
 

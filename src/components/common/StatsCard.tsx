@@ -3,25 +3,23 @@ interface StatsCardProps {
   value: number
   icon: string
   bgColor: string
-  textColor?: string
 }
 
-export function StatsCard({ title, value, icon, bgColor, textColor = 'text-gray-900' }: StatsCardProps) {
+export function StatsCard({ title, value, icon, bgColor }: StatsCardProps) {
   return (
-    <div className={`${bgColor} rounded-lg p-6 shadow-md transition-transform hover:scale-105`}>
+    <div className={`${bgColor} p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium text-gray-600 uppercase tracking-wider mb-2">
-            {title}
-          </p>
-          <p className={`text-3xl font-bold ${textColor}`}>
-            {value}
-          </p>
+          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
+          <p className="text-3xl font-bold text-gray-900">{value}</p>
         </div>
-        <div className="text-4xl">
-          {icon}
-        </div>
+        <div className="text-4xl">{icon}</div>
       </div>
     </div>
   )
 }
+
+
+
+
+

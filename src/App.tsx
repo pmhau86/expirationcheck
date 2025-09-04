@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { ThemeProvider, CssBaseline } from '@mui/material'
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  Button, 
+  Box,
+  Container,
+  Alert,
+  CircularProgress
+} from '@mui/material'
+import { 
+  Dashboard, 
+  Domain, 
+  Person,
+  Language
+} from '@mui/icons-material'
 import { theme } from '@/theme/muiTheme'
 import { DomainDashboard } from '@/components/pages/domain/DomainDashboard'
 import { DomainListPage } from '@/components/pages/domain/DomainListPage'
@@ -16,36 +32,69 @@ function Navigation() {
   }
 
   return (
-    <nav className="bg-white/90 backdrop-blur-md shadow-xl border-b border-white/50 sticky top-0 z-40">
-      <div className="container mx-auto px-6">
-        <div className="flex items-center justify-between h-20">
-          <Link to="/" className="text-2xl font-black text-transparent bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text flex items-center hover:scale-105 transition-transform">
-            🌐 Domain Manager
+    <AppBar position="sticky" sx={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)' }}>
+      <Container maxWidth="lg">
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <Box display="flex" alignItems="center">
+              <Language sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography 
+                variant="h6" 
+                component="span" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  background: 'linear-gradient(45deg, #9C27B0 30%, #E91E63 90%)',
+                  backgroundClip: 'text',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}
+              >
+                Domain Manager
+              </Typography>
+            </Box>
           </Link>
           
-          <div className="flex space-x-4">
-            <Link 
-              to="/dashboard" 
-              className={`${isActive('/dashboard') ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg' : 'text-gray-700 hover:text-white hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-600 hover:shadow-lg'} px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 hover:scale-105`}
+          <Box display="flex" gap={1}>
+            <Button
+              component={Link}
+              to="/dashboard"
+              variant={isActive('/dashboard') ? 'contained' : 'text'}
+              startIcon={<Dashboard />}
+              sx={{ 
+                borderRadius: 2,
+                fontWeight: 'bold'
+              }}
             >
-              🏠 Dashboard
-            </Link>
-            <Link 
-              to="/domains" 
-              className={`${isActive('/domains') ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg' : 'text-gray-700 hover:text-white hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-600 hover:shadow-lg'} px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 hover:scale-105`}
+              Dashboard
+            </Button>
+            <Button
+              component={Link}
+              to="/domains"
+              variant={isActive('/domains') ? 'contained' : 'text'}
+              startIcon={<Domain />}
+              sx={{ 
+                borderRadius: 2,
+                fontWeight: 'bold'
+              }}
             >
-              📋 Domains
-            </Link>
-            <Link 
-              to="/users" 
-              className={`${isActive('/users') ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg' : 'text-gray-700 hover:text-white hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-600 hover:shadow-lg'} px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 hover:scale-105`}
+              Domains
+            </Button>
+            <Button
+              component={Link}
+              to="/users"
+              variant={isActive('/users') ? 'contained' : 'text'}
+              startIcon={<Person />}
+              sx={{ 
+                borderRadius: 2,
+                fontWeight: 'bold'
+              }}
             >
-              👤 Users
-            </Link>
-          </div>
-        </div>
-      </div>
-    </nav>
+              Users
+            </Button>
+          </Box>
+        </Toolbar>
+      </Container>
+    </AppBar>
   )
 }
 
@@ -71,12 +120,20 @@ function App() {
 
   if (!isAuthInitialized) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Initializing application...</p>
-        </div>
-      </div>
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="100vh"
+        bgcolor="grey.50"
+      >
+        <Box textAlign="center">
+          <CircularProgress size={48} sx={{ mb: 2 }} />
+          <Typography variant="body1" color="textSecondary">
+            Initializing application...
+          </Typography>
+        </Box>
+      </Box>
     )
   }
 
@@ -84,14 +141,14 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <div className="min-h-screen bg-gray-50">
+        <Box minHeight="100vh" bgcolor="grey.50">
           {/* Auth Error Banner */}
           {authError && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 text-center">
+            <Alert severity="warning" sx={{ textAlign: 'center' }}>
               <strong>⚠️ Authentication Warning:</strong> {authError}
               <br />
               <small>Some features may not work properly.</small>
-            </div>
+            </Alert>
           )}
           
           <Navigation />
@@ -101,9 +158,9 @@ function App() {
             <Route path="/dashboard" element={<DomainDashboard />} />
             <Route path="/domains" element={<DomainListPage />} />
             <Route path="/users" element={<UserListPage />} />
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<DomainDashboard />} />
           </Routes>
-        </div>
+        </Box>
       </Router>
     </ThemeProvider>
   )

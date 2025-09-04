@@ -1,274 +1,312 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { domainService } from '@/services/domain'
-import type { Domain, DomainStats } from '@/types/domain'
-import { StatsCard } from '@/components/common/StatsCard'
-import { StatusBanner } from '@/components/common/StatusBanner'
+import { 
+  Container, 
+  Typography, 
+  Grid, 
+  Card, 
+  CardContent, 
+  Box,
+  CircularProgress,
+  Alert,
+  Button
+} from '@mui/material'
+import { 
+  Domain, 
+  Warning, 
+  CheckCircle, 
+  Error,
+  Add
+} from '@mui/icons-material'
+import { getDomains, syncSSLCertificate, syncDomainWithWhois, updateDomain, deleteDomain } from '@/services/domain'
+import { initAuth } from '@/lib/appwrite'
+import { DomainsTable } from '@/components/common/DomainsTable'
+import { AddDomainForm } from '@/components/common/AddDomainForm'
+import type { Models } from 'appwrite'
+import type { Domain as DomainType } from '@/types/domain'
 
 export function DomainDashboard() {
-  const [stats, setStats] = useState<DomainStats>({
-    total: 0,
-    active: 0,
-    expiringSoon: 0,
-    expired: 0
-  })
-  const [recentDomains, setRecentDomains] = useState<Domain[]>([])
-  const [expiringDomains, setExpiringDomains] = useState<Domain[]>([])
+  const [domains, setDomains] = useState<DomainType[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [isLive, setIsLive] = useState(true)
+  const [error, setError] = useState('')
+  const [isAddDomainOpen, setIsAddDomainOpen] = useState(false)
 
   useEffect(() => {
-    loadDashboardData()
+    initializeApp()
   }, [])
 
-  const loadDashboardData = async () => {
-    setIsLoading(true)
-    setError(null)
-    
+  async function initializeApp() {
     try {
-      const [statsData, allDomains, expiring] = await Promise.all([
-        domainService.getStats(),
-        domainService.getAllDomains(),
-        domainService.getExpiringSoonDomains()
-      ])
-      
-      setStats(statsData)
-      
-      // Get 5 most recent domains
-      const recent = allDomains
-        .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
-        .slice(0, 5)
-      setRecentDomains(recent)
-      
-      setExpiringDomains(expiring.slice(0, 5))
-      setIsLive(true)
-    } catch (err: any) {
-      console.error('Error loading dashboard data:', err)
-      setError(err.message || 'An error occurred while loading data')
-      setIsLive(false)
+      await initAuth()
+      await fetchDomains()
+    } catch (error: any) {
+      setError(`Initialization failed: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    })
+  async function fetchDomains() {
+    try {
+      console.log('🔄 Fetching domains from database...')
+      const data = await getDomains()
+      console.log('📋 Raw data from database:', data)
+      
+      // Convert Appwrite documents to Domain type
+      const convertedDomains: DomainType[] = data.map((doc: Models.Document) => ({
+        $id: doc.$id,
+        domain: doc.domain || '',
+        issued_date: doc.issued_date || '',
+        expire_date: doc.expire_date || '',
+        ssl_expire_date: doc.ssl_expire_date || '',
+        $createdAt: doc.$createdAt,
+        $updatedAt: doc.$updatedAt
+      }))
+      
+      console.log('🔄 Setting domains state:', convertedDomains)
+      setDomains(convertedDomains)
+      console.log('✅ Data loaded successfully:', convertedDomains.length, 'domains')
+    } catch (error: any) {
+      console.error('❌ Failed to fetch domains:', error)
+      setError(`Failed to fetch domains: ${error.message}`)
+    }
   }
 
-  const getDaysUntilExpiry = (expireDate: string) => {
-    const expire = new Date(expireDate)
-    const now = new Date()
-    const diffTime = expire.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
+  const getStats = () => {
+    const total = domains.length
+    const active = domains.filter(d => {
+      if (!d.expire_date) return false
+      return new Date(d.expire_date) > new Date()
+    }).length
+    const expiringSoon = domains.filter(d => {
+      if (!d.expire_date) return false
+      const daysLeft = Math.ceil((new Date(d.expire_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+      return daysLeft <= 30 && daysLeft > 0
+    }).length
+    const expired = domains.filter(d => {
+      if (!d.expire_date) return false
+      return new Date(d.expire_date) < new Date()
+    }).length
+
+    return { total, active, expiringSoon, expired }
   }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full text-center">
-          <div className="text-6xl mb-4">❌</div>
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error loading dashboard</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button 
-            onClick={loadDashboardData}
-            className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded transition-colors"
-          >
-            🔄 Thử lại
-          </button>
-        </div>
-      </div>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={initializeApp}>
+          Retry
+        </Button>
+      </Container>
     )
   }
 
+  const stats = getStats()
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <StatusBanner isLive={isLive} />
-      <div className="container mx-auto px-4 py-8" style={{ paddingTop: '4rem' }}>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🏠 Dashboard Domain Management
-          </h1>
-          <p className="text-gray-600">
-            Tổng quan về tình trạng domains trong hệ thống
-          </p>
-        </div>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h4" component="h1">
+          Domain Dashboard
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => setIsAddDomainOpen(true)}
+          sx={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+            }
+          }}
+        >
+          Add Domain
+        </Button>
+      </Box>
+      
+      {/* Stats Cards */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Total Domains
+                  </Typography>
+                  <Typography variant="h4" component="div">
+                    {stats.total}
+                  </Typography>
+                </Box>
+                <Domain color="primary" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Active
+                  </Typography>
+                  <Typography variant="h4" component="div" color="success.main">
+                    {stats.active}
+                  </Typography>
+                </Box>
+                <CheckCircle color="success" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Expiring Soon
+                  </Typography>
+                  <Typography variant="h4" component="div" color="warning.main">
+                    {stats.expiringSoon}
+                  </Typography>
+                </Box>
+                <Warning color="warning" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography color="textSecondary" gutterBottom>
+                    Expired
+                  </Typography>
+                  <Typography variant="h4" component="div" color="error.main">
+                    {stats.expired}
+                  </Typography>
+                </Box>
+                <Error color="error" sx={{ fontSize: 40 }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatsCard
-            title="Tổng số Domain"
-            value={stats.total}
-            icon="🌐"
-            bgColor="bg-blue-100"
+      {/* Domains Table */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Recent Domains
+          </Typography>
+          <DomainsTable 
+            domains={domains.slice(0, 10)} 
+            onUpdate={async (domain) => {
+              // Handle update - this will be called with the updated domain object
+              console.log('🔄 Updating domain:', domain)
+              try {
+                // Extract the field that was updated
+                const updateData: any = {}
+                if (domain.expire_date) updateData.expire_date = domain.expire_date
+                if (domain.issued_date) updateData.issued_date = domain.issued_date
+                if (domain.ssl_expire_date) updateData.ssl_expire_date = domain.ssl_expire_date
+                
+                const result = await updateDomain(domain.$id, updateData)
+                console.log('✅ Domain update successful:', result)
+                await fetchDomains()
+              } catch (error) {
+                console.error('💥 Domain update failed:', error)
+              }
+            }}
+            onDelete={async (domain) => {
+              // Handle delete
+              console.log('🔄 Deleting domain:', domain)
+              try {
+                await deleteDomain(domain.$id)
+                console.log('✅ Domain deleted successfully:', domain.domain)
+                console.log('🔄 Refreshing domains list...')
+                await fetchDomains()
+                console.log('✅ Domains list refreshed after delete')
+              } catch (error) {
+                console.error('💥 Domain delete failed:', error)
+              }
+            }}
+            onSync={async (domain) => {
+              // Handle domain sync
+              console.log('🔄 Starting domain sync for:', domain)
+              try {
+                const result = await syncDomainWithWhois(domain)
+                console.log('📋 Sync result:', result)
+                
+                if (result.success) {
+                  console.log('✅ Domain WHOIS sync successful:', result)
+                  console.log('🔄 Refreshing domains list...')
+                  
+                  // Refresh the domains list
+                  await fetchDomains()
+                  console.log('✅ Domains list refreshed')
+                } else {
+                  console.error('❌ Domain WHOIS sync failed:', result.error)
+                }
+              } catch (error) {
+                console.error('💥 Domain WHOIS sync failed:', error)
+              }
+            }}
+            onSSLSync={async (domain) => {
+              // Handle SSL sync
+              console.log('SSL Sync domain:', domain)
+              try {
+                const result = await syncSSLCertificate(domain)
+                if (result.success) {
+                  console.log('✅ SSL sync successful:', result)
+                  // Refresh the domains list
+                  await fetchDomains()
+                } else {
+                  console.error('❌ SSL sync failed:', result.error)
+                }
+              } catch (error) {
+                console.error('SSL sync failed:', error)
+              }
+            }}
+            onUpdateDate={async (domainId, expireDate) => {
+              // Handle update date
+              console.log('🔄 Updating date for domain:', domainId, 'to:', expireDate)
+              try {
+                const result = await updateDomain(domainId, { expire_date: expireDate })
+                console.log('✅ Date update successful:', result)
+                // Refresh the domains list
+                await fetchDomains()
+              } catch (error) {
+                console.error('💥 Date update failed:', error)
+                throw error
+              }
+            }}
           />
-          <StatsCard
-            title="Đang hoạt động"
-            value={stats.active}
-            icon="✅"
-            bgColor="bg-green-100"
-          />
-          <StatsCard
-            title="Sắp hết hạn"
-            value={stats.expiringSoon}
-            icon="⚠️"
-            bgColor="bg-yellow-100"
-          />
-          <StatsCard
-            title="Đã hết hạn"
-            value={stats.expired}
-            icon="❌"
-            bgColor="bg-red-100"
-          />
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Quick Actions */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Link 
-            to="/domains"
-            className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow block group"
-          >
-            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">📋</div>
-            <h3 className="text-lg font-semibold mb-2 text-gray-800 group-hover:text-blue-600">View All Domains</h3>
-            <p className="text-gray-600 text-sm">
-              Manage, search and filter domains
-            </p>
-          </Link>
-
-          <Link 
-            to="/domains?filter=expiring"
-            className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow block"
-          >
-            <div className="text-3xl mb-3">⚠️</div>
-            <h3 className="text-lg font-semibold mb-2">Domains Expiring Soon</h3>
-            <p className="text-gray-600 text-sm">
-              Check domains requiring renewal
-            </p>
-          </Link>
-
-          <Link 
-            to="/domains?filter=expired"
-            className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow block"
-          >
-            <div className="text-3xl mb-3">❌</div>
-            <h3 className="text-lg font-semibold mb-2">Expired Domains</h3>
-            <p className="text-gray-600 text-sm">
-              View domains requiring urgent action
-            </p>
-          </Link>
-        </div>
-
-        {/* Content Grid */}
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Recent Domains */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                📝 Recent Domains
-              </h2>
-              <Link 
-                to="/domains"
-                className="text-blue-500 hover:text-blue-600 text-sm font-medium transition-colors"
-              >
-                View All →
-              </Link>
-            </div>
-
-            {recentDomains.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
-                No domains have been added yet
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {recentDomains.map((domain) => (
-                  <div key={domain.$id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-900">{domain.domain}</div>
-                      <div className="text-sm text-gray-500">
-                        Added: {formatDate(domain.$createdAt)}
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      Expires: {formatDate(domain.expire_date)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Expiring Domains */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                ⚠️ Sắp hết hạn (30 ngày)
-              </h2>
-              <Link 
-                to="/domains?filter=expiring"
-                className="text-yellow-600 hover:text-yellow-700 text-sm font-medium transition-colors"
-              >
-                View All →
-              </Link>
-            </div>
-
-            {expiringDomains.length === 0 ? (
-              <p className="text-green-600 text-center py-8">
-                ✅ Không có domain nào sắp hết hạn
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {expiringDomains.map((domain) => {
-                  const daysLeft = getDaysUntilExpiry(domain.expire_date)
-                  return (
-                    <div key={domain.$id} className="flex items-center justify-between p-3 border border-yellow-200 bg-yellow-50 rounded-lg">
-                      <div>
-                        <div className="font-medium text-gray-900">{domain.domain}</div>
-                        <div className="text-sm text-gray-600">
-                          Expires: {formatDate(domain.expire_date)}
-                        </div>
-                      </div>
-                      <div className={`text-sm font-bold ${
-                        daysLeft <= 7 ? 'text-red-600' : 
-                        daysLeft <= 14 ? 'text-orange-600' : 
-                        'text-yellow-600'
-                      }`}>
-                        {daysLeft} ngày
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Refresh Button */}
-        <div className="mt-8 text-center">
-          <button 
-            onClick={loadDashboardData}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-          >
-            🔄 Làm mới Dashboard
-          </button>
-        </div>
-      </div>
-    </div>
+      {/* Add Domain Form */}
+      <AddDomainForm
+        isOpen={isAddDomainOpen}
+        onClose={() => setIsAddDomainOpen(false)}
+        onDomainAdded={fetchDomains}
+      />
+    </Container>
   )
 }
