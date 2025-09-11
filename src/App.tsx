@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { ThemeProvider, CssBaseline } from '@mui/material'
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
   Box,
   Container,
   Alert,
   CircularProgress
 } from '@mui/material'
-import { 
-  Dashboard, 
-  Domain, 
+import {
+  Dashboard,
+  Domain,
   Person,
   Language
 } from '@mui/icons-material'
@@ -21,12 +21,12 @@ import { theme } from '@/theme/muiTheme'
 import { DomainDashboard } from '@/components/pages/domain/DomainDashboard'
 import { DomainListPage } from '@/components/pages/domain/DomainListPage'
 import { UserListPage } from '@/components/pages/user/UserListPage'
-import { LandingPage } from '@/components/pages/home/LandingPage'
+// import { LandingPage } from '@/components/pages/home/LandingPage'
 import { initAuth } from '@/lib/appwrite'
 
 function Navigation() {
   const location = useLocation()
-  
+
   const isActive = (path: string) => {
     return location.pathname === path
   }
@@ -38,10 +38,10 @@ function Navigation() {
           <Link to="/" style={{ textDecoration: 'none' }}>
             <Box display="flex" alignItems="center">
               <Language sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography 
-                variant="h6" 
-                component="span" 
-                sx={{ 
+              <Typography
+                variant="h6"
+                component="span"
+                sx={{
                   fontWeight: 'bold',
                   background: 'linear-gradient(45deg, #9C27B0 30%, #E91E63 90%)',
                   backgroundClip: 'text',
@@ -53,14 +53,14 @@ function Navigation() {
               </Typography>
             </Box>
           </Link>
-          
+
           <Box display="flex" gap={1}>
             <Button
               component={Link}
               to="/dashboard"
               variant={isActive('/dashboard') ? 'contained' : 'text'}
               startIcon={<Dashboard />}
-              sx={{ 
+              sx={{
                 borderRadius: 2,
                 fontWeight: 'bold'
               }}
@@ -72,7 +72,7 @@ function Navigation() {
               to="/domains"
               variant={isActive('/domains') ? 'contained' : 'text'}
               startIcon={<Domain />}
-              sx={{ 
+              sx={{
                 borderRadius: 2,
                 fontWeight: 'bold'
               }}
@@ -84,7 +84,7 @@ function Navigation() {
               to="/users"
               variant={isActive('/users') ? 'contained' : 'text'}
               startIcon={<Person />}
-              sx={{ 
+              sx={{
                 borderRadius: 2,
                 fontWeight: 'bold'
               }}
@@ -120,10 +120,10 @@ function App() {
 
   if (!isAuthInitialized) {
     return (
-      <Box 
-        display="flex" 
-        justifyContent="center" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
         minHeight="100vh"
         bgcolor="grey.50"
       >
@@ -150,7 +150,7 @@ function App() {
               <small>Some features may not work properly.</small>
             </Alert>
           )}
-          
+
           <Navigation />
 
           {/* Routes */}

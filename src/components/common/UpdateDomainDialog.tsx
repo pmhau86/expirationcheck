@@ -23,12 +23,12 @@ interface UpdateDomainDialogProps {
   dateField?: 'issued_date' | 'expire_date' | 'ssl_expire_date'
 }
 
-export function UpdateDomainDialog({ 
-  open, 
-  onClose, 
-  domain, 
+export function UpdateDomainDialog({
+  open,
+  onClose,
+  domain,
   onUpdate,
-  updateType = 'domain',
+  // updateType = 'domain',
   dateField = 'expire_date'
 }: UpdateDomainDialogProps) {
   const [expireDate, setExpireDate] = useState('')
@@ -74,7 +74,7 @@ export function UpdateDomainDialog({
 
       // Convert to ISO string for database
       const isoDate = newDate.toISOString()
-      
+
       await onUpdate(domain.$id, isoDate)
       handleClose()
     } catch (err: any) {
@@ -87,8 +87,8 @@ export function UpdateDomainDialog({
   if (!domain) return null
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
@@ -101,10 +101,10 @@ export function UpdateDomainDialog({
     >
       <DialogTitle>
         <Box display="flex" alignItems="center" gap={2}>
-          <Box 
-            sx={{ 
-              p: 1, 
-              borderRadius: 2, 
+          <Box
+            sx={{
+              p: 1,
+              borderRadius: 2,
               background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
               color: 'white'
             }}
@@ -161,7 +161,7 @@ export function UpdateDomainDialog({
         </DialogContent>
 
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button 
+          <Button
             onClick={handleClose}
             disabled={isUpdating}
             sx={{ borderRadius: 2 }}
@@ -173,7 +173,7 @@ export function UpdateDomainDialog({
             variant="contained"
             disabled={isUpdating || !expireDate}
             startIcon={isUpdating ? <CircularProgress size={16} /> : <Update />}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
               '&:hover': {

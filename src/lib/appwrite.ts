@@ -1,4 +1,4 @@
-import { Client, Databases, Account, Permission, Role } from 'appwrite'
+import { Client, Databases, Account } from 'appwrite'
 
 console.log('🔧 Appwrite Config:', {
   endpoint: import.meta.env.VITE_APPWRITE_ENDPOINT,

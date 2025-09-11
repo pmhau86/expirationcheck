@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Paper, 
-  Chip, 
-  IconButton, 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Chip,
+  IconButton,
   Typography,
   Box,
   Tooltip,
@@ -21,15 +21,15 @@ import {
   DialogActions,
   Button
 } from '@mui/material'
-import { 
-  Sync, 
-  Delete, 
-  CheckCircle, 
-  Warning, 
+import {
+  Sync,
+  Delete,
+  CheckCircle,
+  Warning,
   Error,
   CalendarToday,
   Update,
-  Edit
+  // Edit
 } from '@mui/icons-material'
 import type { Domain } from '@/types/domain'
 import { UpdateDomainDialog } from './UpdateDomainDialog'
@@ -48,11 +48,11 @@ interface DomainsTableProps {
 type SortOrder = 'asc' | 'desc'
 type SortField = 'domain' | 'issued_date' | 'expire_date' | 'ssl_expire_date' | 'status' | 'days_left' | 'ssl_days_left'
 
-export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate, onSSLSync, onUpdateDate }: DomainsTableProps) {
+export function DomainsTable({ domains, onUpdate, onDelete, onSSLUpdate, onSSLSync, onUpdateDate }: DomainsTableProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   const [sortField, setSortField] = useState<SortField>('domain')
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
-  const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set())
+  const [syncingIds] = useState<Set<string>>(new Set())
   const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set())
   const [sslUpdatingIds, setSSLUpdatingIds] = useState<Set<string>>(new Set())
   const [sslSyncingIds, setSSLSyncingIds] = useState<Set<string>>(new Set())
@@ -74,13 +74,13 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
     if (!dateString || dateString === 'Invalid Date' || dateString === 'null' || dateString === 'undefined') {
       return '-'
     }
-    
+
     const date = new Date(dateString)
     if (isNaN(date.getTime())) {
       console.warn('Invalid date string:', dateString)
       return '-'
     }
-    
+
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
@@ -90,53 +90,53 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
 
   const getStatusInfo = (domain: Domain) => {
     if (!domain.expire_date || domain.expire_date === 'Invalid Date' || domain.expire_date === 'null' || domain.expire_date === 'undefined') {
-      return { 
-        status: 'UNKNOWN', 
+      return {
+        status: 'UNKNOWN',
         color: 'default' as const,
         icon: <Warning />,
         daysLeft: 0,
         daysText: 'No expire date'
       }
     }
-    
+
     const expireDate = new Date(domain.expire_date)
     if (isNaN(expireDate.getTime())) {
       console.warn('Invalid expire date for domain:', domain.domain, domain.expire_date)
-      return { 
-        status: 'UNKNOWN', 
+      return {
+        status: 'UNKNOWN',
         color: 'default' as const,
         icon: <Warning />,
         daysLeft: 0,
         daysText: 'Invalid date'
       }
     }
-    
+
     const now = new Date()
     const isExpired = expireDate < now
     const daysLeft = Math.ceil((expireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    
+
     if (isExpired) {
-      return { 
-        status: 'EXPIRED', 
+      return {
+        status: 'EXPIRED',
         color: 'error' as const,
         icon: <Error />,
         daysLeft: Math.abs(daysLeft),
         daysText: `Expired ${Math.abs(daysLeft)} days ago`
       }
     }
-    
+
     if (daysLeft <= 30) {
-      return { 
-        status: 'EXPIRING', 
+      return {
+        status: 'EXPIRING',
         color: 'warning' as const,
         icon: <Warning />,
         daysLeft,
         daysText: `${daysLeft} days left`
       }
     }
-    
-    return { 
-      status: 'ACTIVE', 
+
+    return {
+      status: 'ACTIVE',
       color: 'success' as const,
       icon: <CheckCircle />,
       daysLeft,
@@ -157,24 +157,24 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
     const now = new Date()
     const isExpired = sslExpireDate < now
     const daysLeft = Math.ceil((sslExpireDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-    
+
     if (isExpired) {
-      return { 
+      return {
         daysLeft: Math.abs(daysLeft),
         daysText: `Expired ${Math.abs(daysLeft)} days ago`,
         color: 'error.dark' as const
       }
     }
-    
+
     if (daysLeft <= 30) {
-      return { 
+      return {
         daysLeft,
         daysText: `${daysLeft} days left`,
         color: 'warning.dark' as const
       }
     }
-    
-    return { 
+
+    return {
       daysLeft,
       daysText: `${daysLeft} days left`,
       color: 'success.dark' as const
@@ -183,14 +183,14 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
 
   const handleDelete = async (domain: Domain) => {
     if (!onDelete) return
-    
+
     setSelectedDomain(domain)
     setDeleteDialogOpen(true)
   }
 
   const handleDeleteConfirm = async () => {
     if (!selectedDomain || !onDelete) return
-    
+
     setDeletingIds(prev => new Set(prev).add(selectedDomain.$id))
     try {
       await onDelete(selectedDomain)
@@ -212,30 +212,30 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
     }
   }
 
-  const handleSync = async (domain: Domain) => {
-    if (!onSync) return
+  // const handleSync = async (domain: Domain) => {
+  //   if (!onSync) return
 
-    setSyncError(null) // Clear previous errors
-    setSyncingIds(prev => new Set(prev).add(domain.$id))
-    try {
-      await onSync(domain)
-    } catch (error: any) {
-      setSyncError(`WHOIS sync failed for "${domain.domain}". Please input expiration date manually.`)
-    } finally {
-      setSyncingIds(prev => {
-        const next = new Set(prev)
-        next.delete(domain.$id)
-        return next
-      })
-    }
-  }
+  //   setSyncError(null) // Clear previous errors
+  //   setSyncingIds(prev => new Set(prev).add(domain.$id))
+  //   try {
+  //     await onSync(domain)
+  //   } catch (error: any) {
+  //     setSyncError(`WHOIS sync failed for "${domain.domain}". Please input expiration date manually.`)
+  //   } finally {
+  //     setSyncingIds(prev => {
+  //       const next = new Set(prev)
+  //       next.delete(domain.$id)
+  //       return next
+  //     })
+  //   }
+  // }
 
   const handleUpdate = async (domain: Domain, field: 'issued_date' | 'expire_date' | 'ssl_expire_date') => {
     setSelectedDomain(domain)
     setUpdateType('domain')
     setUpdateDialogOpen(true)
-    // Store the field type for the dialog
-    ;(window as any).updateField = field
+      // Store the field type for the dialog
+      ; (window as any).updateField = field
   }
 
   const handleUpdateSubmit = async (domainId: string, newDate: string) => {
@@ -268,7 +268,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
           updateData.ssl_expire_date = newDate
         }
         await onUpdate(updateData)
-        
+
         // Close dialog after successful update
         setUpdateDialogOpen(false)
         setSelectedDomain(null)
@@ -284,7 +284,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
 
   const handleSSLUpdate = async (domain: Domain) => {
     if (!onSSLUpdate) return
-    
+
     setSelectedDomain(domain)
     setUpdateType('ssl')
     setUpdateDialogOpen(true)
@@ -313,10 +313,10 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
     setSelectedDomain(null)
   }
 
-  const handleUpdateDate = (domain: Domain) => {
-    setSelectedDomainForDate(domain)
-    setUpdateDateDialogOpen(true)
-  }
+  // const handleUpdateDate = (domain: Domain) => {
+  //   setSelectedDomainForDate(domain)
+  //   setUpdateDateDialogOpen(true)
+  // }
 
   const handleUpdateDateSubmit = async (domainId: string, expireDate: string) => {
     if (!onUpdateDate) return
@@ -343,7 +343,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
   const sortedDomains = [...domains].sort((a, b) => {
     let aValue: any
     let bValue: any
-    
+
     switch (sortField) {
       case 'domain':
         aValue = a.domain
@@ -376,7 +376,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
       default:
         return 0
     }
-    
+
     if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
     if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
     return 0
@@ -399,20 +399,20 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
     <>
       {/* Sync Error Alert */}
       {syncError && (
-        <Alert 
-          severity="error" 
+        <Alert
+          severity="error"
           sx={{ mb: 2 }}
           onClose={() => setSyncError(null)}
         >
-                     <Typography variant="body2">
-             <strong>Sync Error:</strong> {syncError}
-           </Typography>
+          <Typography variant="body2">
+            <strong>Sync Error:</strong> {syncError}
+          </Typography>
         </Alert>
       )}
-      
-      <TableContainer 
-        component={Paper} 
-        sx={{ 
+
+      <TableContainer
+        component={Paper}
+        sx={{
           mb: 3,
           borderRadius: 3,
           boxShadow: 3,
@@ -502,20 +502,20 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
           </TableHead>
           <TableBody>
             {sortedDomains.map((domain, index) => {
-                             const statusInfo = getStatusInfo(domain)
-               const isDeleting = deletingIds.has(domain.$id)
-               const isSyncing = syncingIds.has(domain.$id)
-               const isUpdating = updatingIds.has(domain.$id)
-               const isSSLUpdating = sslUpdatingIds.has(domain.$id)
-               const isSSLSyncing = sslSyncingIds.has(domain.$id)
-              
+              const statusInfo = getStatusInfo(domain)
+              const isDeleting = deletingIds.has(domain.$id)
+              const isSyncing = syncingIds.has(domain.$id)
+              const isUpdating = updatingIds.has(domain.$id)
+              const isSSLUpdating = sslUpdatingIds.has(domain.$id)
+              const isSSLSyncing = sslSyncingIds.has(domain.$id)
+
               return (
-                <TableRow 
+                <TableRow
                   key={domain.$id}
-                  sx={{ 
-                    '&:hover': { 
-                      bgcolor: statusInfo.color === 'success' ? 'success.50' : 
-                               statusInfo.color === 'warning' ? 'warning.50' : 'error.50',
+                  sx={{
+                    '&:hover': {
+                      bgcolor: statusInfo.color === 'success' ? 'success.50' :
+                        statusInfo.color === 'warning' ? 'warning.50' : 'error.50',
                       transition: 'background-color 0.2s ease'
                     },
                     bgcolor: index % 2 === 0 ? 'grey.50' : 'white'
@@ -524,12 +524,12 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       {statusInfo.icon}
-                      <Typography 
-                        variant="body2" 
+                      <Typography
+                        variant="body2"
                         fontWeight={600}
-                        sx={{ 
-                          maxWidth: 200, 
-                          overflow: 'hidden', 
+                        sx={{
+                          maxWidth: 200,
+                          overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
                         }}
@@ -538,7 +538,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                       </Typography>
                     </Box>
                   </TableCell>
-                  
+
                   <TableCell>
                     <Chip
                       label={statusInfo.status}
@@ -552,32 +552,32 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                           statusInfo.status === 'EXPIRED'
                             ? '#fdecea'
                             : statusInfo.status === 'EXPIRING'
-                            ? '#fff8e1'
-                            : statusInfo.status === 'ACTIVE'
-                            ? '#e8f5e9'
-                            : '#f5f5f5',
+                              ? '#fff8e1'
+                              : statusInfo.status === 'ACTIVE'
+                                ? '#e8f5e9'
+                                : '#f5f5f5',
                         color:
                           statusInfo.status === 'EXPIRED'
                             ? '#b71c1c'
                             : statusInfo.status === 'EXPIRING'
-                            ? '#ff8f00'
-                            : statusInfo.status === 'ACTIVE'
-                            ? '#1b5e20'
-                            : '#424242',
+                              ? '#ff8f00'
+                              : statusInfo.status === 'ACTIVE'
+                                ? '#1b5e20'
+                                : '#424242',
                         border: '1px solid',
                         borderColor:
                           statusInfo.status === 'EXPIRED'
                             ? '#f8bbd0'
                             : statusInfo.status === 'EXPIRING'
-                            ? '#ffe082'
-                            : statusInfo.status === 'ACTIVE'
-                            ? '#a5d6a7'
-                            : '#e0e0e0',
+                              ? '#ffe082'
+                              : statusInfo.status === 'ACTIVE'
+                                ? '#a5d6a7'
+                                : '#e0e0e0',
                         boxShadow: 'none',
                       }}
                     />
                   </TableCell>
-                  
+
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
@@ -593,8 +593,8 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                               color="info"
                               disabled={isUpdating || isSyncing || isSSLUpdating || isSSLSyncing}
                               onClick={() => handleUpdate(domain, 'issued_date')}
-                              sx={{ 
-                                '&:hover': { 
+                              sx={{
+                                '&:hover': {
                                   bgcolor: 'info.50',
                                   transform: 'scale(1.1)',
                                   transition: 'all 0.2s ease'
@@ -612,11 +612,11 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                       </Box>
                     </Box>
                   </TableCell>
-                  
+
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
-                      <Typography 
+                      <Typography
                         variant="body2"
                         color={statusInfo.color === 'error' ? 'error.main' : 'text.primary'}
                         fontWeight={statusInfo.color === 'error' ? 700 : 400}
@@ -632,8 +632,8 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                               color="info"
                               disabled={isUpdating || isSyncing}
                               onClick={() => handleUpdate(domain, 'expire_date')}
-                              sx={{ 
-                                '&:hover': { 
+                              sx={{
+                                '&:hover': {
                                   bgcolor: 'info.50',
                                   transform: 'scale(1.1)',
                                   transition: 'all 0.2s ease'
@@ -648,22 +648,22 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                             </IconButton>
                           </Tooltip>
                         )}
-                        
+
 
                       </Box>
                     </Box>
                   </TableCell>
-                  
+
                   <TableCell>
-                    <Typography 
-                      variant="body2" 
+                    <Typography
+                      variant="body2"
                       fontWeight={700}
                       color={statusInfo.color + '.dark'}
                     >
                       {statusInfo.daysText}
                     </Typography>
                   </TableCell>
-                  
+
                   <TableCell>
                     <Box display="flex" alignItems="center" gap={1}>
                       <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
@@ -679,8 +679,8 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                               color="info"
                               disabled={isSSLUpdating || isSSLSyncing}
                               onClick={() => handleSSLUpdate(domain)}
-                              sx={{ 
-                                '&:hover': { 
+                              sx={{
+                                '&:hover': {
                                   bgcolor: 'info.50',
                                   transform: 'scale(1.1)',
                                   transition: 'all 0.2s ease'
@@ -695,7 +695,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                             </IconButton>
                           </Tooltip>
                         )}
-                        
+
                         {/* SSL Sync Button */}
                         {onSSLSync && (
                           <Tooltip title="Sync SSL certificate with server">
@@ -704,8 +704,8 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                               color="primary"
                               disabled={isSSLSyncing || isSSLUpdating}
                               onClick={() => handleSSLSync(domain)}
-                              sx={{ 
-                                '&:hover': { 
+                              sx={{
+                                '&:hover': {
                                   bgcolor: 'primary.50',
                                   transform: 'scale(1.1)',
                                   transition: 'all 0.2s ease'
@@ -723,18 +723,18 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                       </Box>
                     </Box>
                   </TableCell>
-                  
+
                   <TableCell>
-                    <Typography 
-                      variant="body2" 
+                    <Typography
+                      variant="body2"
                       fontWeight={700}
                       color={getSSLStatusInfo(domain).color}
                     >
                       {getSSLStatusInfo(domain).daysText}
                     </Typography>
                   </TableCell>
-                  
-                                    <TableCell>
+
+                  <TableCell>
                     {/* Delete Button */}
                     {onDelete && (
                       <Tooltip title="Delete domain">
@@ -743,8 +743,8 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
                           color="error"
                           disabled={isDeleting || isSyncing || isUpdating || isSSLUpdating || isSSLSyncing}
                           onClick={() => handleDelete(domain)}
-                          sx={{ 
-                            '&:hover': { 
+                          sx={{
+                            '&:hover': {
                               bgcolor: 'error.50',
                               transform: 'scale(1.1)',
                               transition: 'all 0.2s ease'
@@ -794,10 +794,10 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
       >
         <DialogTitle>
           <Box display="flex" alignItems="center" gap={2}>
-            <Box 
-              sx={{ 
-                p: 1, 
-                borderRadius: 2, 
+            <Box
+              sx={{
+                p: 1,
+                borderRadius: 2,
                 background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
                 color: 'white'
               }}
@@ -818,7 +818,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button 
+          <Button
             onClick={() => setDeleteDialogOpen(false)}
             disabled={deletingIds.has(selectedDomain?.$id || '')}
             sx={{ borderRadius: 2 }}
@@ -831,7 +831,7 @@ export function DomainsTable({ domains, onSync, onUpdate, onDelete, onSSLUpdate,
             color="error"
             disabled={deletingIds.has(selectedDomain?.$id || '')}
             startIcon={deletingIds.has(selectedDomain?.$id || '') ? <CircularProgress size={16} /> : <Delete />}
-            sx={{ 
+            sx={{
               borderRadius: 2,
               background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
               '&:hover': {
