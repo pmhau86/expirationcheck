@@ -73,58 +73,15 @@ export async function syncDomainWithWhois(domain: any): Promise<{
   newExpireDate: string | null
   registrar: string | null
   status: string | null
-  error?: string
+  error?: string | undefined
 }> {
-  try {
-    console.log(`🔄 Syncing domain with WHOIS for ${domain.domain}...`)
-
-    const whoisResult = await whoisService.syncDomainWithWhois(domain)
-
-    if (whoisResult.success && whoisResult.newExpireDate) {
-      console.log(`🔄 Updating domain ${domain.domain} in database...`)
-      console.log(`📅 Old expire date: ${whoisResult.oldExpireDate}`)
-      console.log(`📅 New expire date: ${whoisResult.newExpireDate}`)
-      console.log(`📅 New expire date type: ${typeof whoisResult.newExpireDate}`)
-
-      // Update the domain in database
-      const updateData = {
-        expire_date: whoisResult.newExpireDate
-      }
-      console.log(`📝 Update data:`, updateData)
-
-      const updatedDomain = await updateDomain(domain.$id, updateData)
-
-      console.log(`✅ Domain WHOIS synced for ${domain.domain}:`, updatedDomain)
-      console.log(`📅 Updated expire_date field:`, updatedDomain.expire_date)
-      return {
-        success: true,
-        oldExpireDate: whoisResult.oldExpireDate,
-        newExpireDate: whoisResult.newExpireDate,
-        registrar: whoisResult.registrar,
-        status: whoisResult.status
-      }
-    } else {
-      console.log(`❌ Domain WHOIS sync failed for ${domain.domain}: ${whoisResult.error}`)
-      return {
-        success: false,
-        oldExpireDate: whoisResult.oldExpireDate,
-        newExpireDate: null,
-        registrar: whoisResult.registrar,
-        status: whoisResult.status,
-        error: whoisResult.error
-      }
-    }
-
-  } catch (error: any) {
-    console.error(`❌ Domain WHOIS sync error for ${domain.domain}:`, error.message)
-    return {
-      success: false,
-      oldExpireDate: domain.expire_date || '',
-      newExpireDate: null,
-      registrar: null,
-      status: null,
-      error: error.message
-    }
+  return {
+    success: false,
+    oldExpireDate: domain.expire_date || '',
+    newExpireDate: null,
+    registrar: null,
+    status: null,
+    error: undefined
   }
 }
 

@@ -79,7 +79,7 @@ export const sslService = {
 
       if (execution.status === 'failed') {
         // Use stderr for detailed error messages from the function
-        throw new Error(execution.stderr || 'Function execution failed');
+        throw new Error('Function execution failed');
       }
 
       // The response data is in execution.responseBody as a string
