@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react'
-import { 
-  Container, 
-  Typography, 
-  Grid, 
-  Card, 
-  CardContent, 
+import {
+  Container,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
   Box,
   CircularProgress,
   Alert,
   Button
 } from '@mui/material'
-import { 
-  Domain, 
-  Warning, 
-  CheckCircle, 
+import {
+  Domain,
+  Warning,
+  CheckCircle,
   Error,
   Add
 } from '@mui/icons-material'
@@ -47,10 +47,10 @@ export function DomainDashboard() {
 
   async function fetchDomains() {
     try {
-      console.log('🔄 Fetching domains from database...')
+      // console.log('🔄 Fetching domains from database...')
       const data = await getDomains()
-      console.log('📋 Raw data from database:', data)
-      
+      // console.log('📋 Raw data from database:', data)
+
       // Convert Appwrite documents to Domain type
       const convertedDomains: DomainType[] = data.map((doc: Models.Document) => ({
         $id: doc.$id,
@@ -61,10 +61,10 @@ export function DomainDashboard() {
         $createdAt: doc.$createdAt,
         $updatedAt: doc.$updatedAt
       }))
-      
-      console.log('🔄 Setting domains state:', convertedDomains)
+
+      // console.log('🔄 Setting domains state:', convertedDomains)
       setDomains(convertedDomains)
-      console.log('✅ Data loaded successfully:', convertedDomains.length, 'domains')
+      // console.log('✅ Data loaded successfully:', convertedDomains.length, 'domains')
     } catch (error: any) {
       console.error('❌ Failed to fetch domains:', error)
       setError(`Failed to fetch domains: ${error.message}`)
@@ -133,7 +133,7 @@ export function DomainDashboard() {
           Add Domain
         </Button>
       </Box>
-      
+
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
@@ -153,7 +153,7 @@ export function DomainDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
@@ -171,7 +171,7 @@ export function DomainDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
@@ -189,7 +189,7 @@ export function DomainDashboard() {
             </CardContent>
           </Card>
         </Grid>
-        
+
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
@@ -215,8 +215,8 @@ export function DomainDashboard() {
           <Typography variant="h6" gutterBottom>
             Recent Domains
           </Typography>
-          <DomainsTable 
-            domains={domains.slice(0, 10)} 
+          <DomainsTable
+            domains={domains.slice(0, 10)}
             onUpdate={async (domain) => {
               // Handle update - this will be called with the updated domain object
               console.log('🔄 Updating domain:', domain)
@@ -226,7 +226,7 @@ export function DomainDashboard() {
                 if (domain.expire_date) updateData.expire_date = domain.expire_date
                 if (domain.issued_date) updateData.issued_date = domain.issued_date
                 if (domain.ssl_expire_date) updateData.ssl_expire_date = domain.ssl_expire_date
-                
+
                 const result = await updateDomain(domain.$id, updateData)
                 console.log('✅ Domain update successful:', result)
                 await fetchDomains()
@@ -253,11 +253,11 @@ export function DomainDashboard() {
               try {
                 const result = await syncDomainWithWhois(domain)
                 console.log('📋 Sync result:', result)
-                
+
                 if (result.success) {
                   console.log('✅ Domain WHOIS sync successful:', result)
                   console.log('🔄 Refreshing domains list...')
-                  
+
                   // Refresh the domains list
                   await fetchDomains()
                   console.log('✅ Domains list refreshed')

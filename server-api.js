@@ -10,7 +10,7 @@ const HOST = '0.0.0.0'; // Bind to all network interfaces
 
 // Enable CORS for all routes with specific origin
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://' + process.env.MY_IP + ':5173'],
+  origin: ['http://localhost:5173', 'http://' + process.env.VITE_MY_IP + ':5173'],
   credentials: true
 }));
 app.use(express.json());
@@ -187,5 +187,5 @@ app.listen(PORT, HOST, () => {
   console.log(`🚀 SSL Check API Server running on http://${HOST}:${PORT}`);
   console.log(`📡 SSL check endpoint: http://${HOST}:${PORT}/api/ssl-check/:domain`);
   console.log(`🧪 Test endpoint: http://${HOST}:${PORT}/test/:domain`);
-  console.log(`🌐 Access from your IP: http://${process.env.MY_IP}:${PORT}`);
+  console.log(`🌐 Access from your IP: http://${process.env.VITE_MY_IP}:${PORT}`);
 });

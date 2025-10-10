@@ -1,4 +1,5 @@
 import type { Domain } from '@/types/domain'
+import { functions } from '@/lib/appwrite';
 
 // SSL Certificate service for checking SSL expiration using server API
 export const sslService = {
@@ -61,37 +62,44 @@ export const sslService = {
     error?: string
   }> {
     try {
-      console.log(`🔧 Calling server API for ${domain}`)
-
-      // Call the server API that uses Node.js tls module
-      const response = await fetch(`http://${import.meta.env.MY_IP}:3001/api/ssl-check/${domain}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server API error: ${response.status} ${response.statusText}`);
+      // Add a guard clause to prevent calling the function with an empty domain
+      if (!domain || domain.trim() === '') {
+        console.error('❌ SSL check cannot be performed: Domain cannot be empty.');
+        throw new Error('Domain cannot be empty');
       }
 
-      const data = await response.json();
+      console.log(`🔧 Calling Appwrite Function for ${domain}`)
+
+      // Call the Appwrite Function by its ID or name
+      const execution = await functions.createExecution(
+        '68e781b0000efd509766', // Use the specific Function ID for reliability
+        JSON.stringify({ domain: domain }), // Data sent to the function, must be a string
+        false // Synchronous execution (waits for the result)
+      );
+
+      if (execution.status === 'failed') {
+        // Use stderr for detailed error messages from the function
+        throw new Error(execution.stderr || 'Function execution failed');
+      }
+
+      // The response data is in execution.responseBody as a string
+      const data = JSON.parse(execution.responseBody);
 
       if (!data.success) {
-        throw new Error(data.error || 'SSL check failed');
+        throw new Error(data.error || 'SSL check failed in function');
       }
 
-      console.log(`✅ Server API result for ${domain}:`, data);
+      console.log(`✅ Appwrite Function result for ${domain}:`, data);
 
       return {
-        validFrom: data.validFrom,
-        validTo: data.validTo,
+        validFrom: data.valid_from, // Note: snake_case from function
+        validTo: data.valid_to,     // Note: snake_case from function
         issuer: data.issuer,
         subject: data.subject,
       };
 
     } catch (error: any) {
-      console.log(`⚠️ Server API failed for ${domain}: ${error.message}`);
+      console.log(`⚠️ Appwrite Function call failed for ${domain}: ${error.message}`);
       throw error;
     }
   },
