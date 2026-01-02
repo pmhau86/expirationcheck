@@ -59,6 +59,7 @@ export const sslService = {
     validTo: string | null
     issuer: string | null
     subject: string | null
+    domainInfo: any | null
     error?: string
   }> {
     try {
