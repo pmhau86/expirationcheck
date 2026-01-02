@@ -12,7 +12,9 @@
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:headed": "playwright test --headed",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "test:function": "node test_edge_function.js",
+    "test:list-domains": "node test_list_domains_function.js"
   },
   "dependencies": {
     "@emotion/react": "^11.13.5",

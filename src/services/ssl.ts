@@ -91,11 +91,19 @@ export const sslService = {
 
       console.log(`✅ Appwrite Function result for ${domain}:`, data);
 
+      // Log domain_info if available
+      if (data.domain_info) {
+        console.log(`📋 Domain info from database:`, data.domain_info);
+      } else {
+        console.log(`⚠️ No domain info found in database for ${domain}`);
+      }
+
       return {
         validFrom: data.valid_from, // Note: snake_case from function
         validTo: data.valid_to,     // Note: snake_case from function
         issuer: data.issuer,
         subject: data.subject,
+        domainInfo: data.domain_info || null, // Include domain_info in response
       };
 
     } catch (error: any) {

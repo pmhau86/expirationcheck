@@ -1,4 +1,5 @@
 const tls = require('tls');
+const { Client, Databases, Query } = require('node-appwrite');
 
 /**
  * Checks the SSL certificate of a domain.
@@ -62,6 +63,41 @@ function checkSSLExpire(domain) {
 }
 
 /**
+ * Fetches domain information from Appwrite database.
+ * @param {string} domainName The domain name to search for.
+ * @param {object} req The request object containing environment variables.
+ * @returns {Promise<object|null>} The domain document or null if not found.
+ */
+async function getDomainFromDatabase(domainName, req) {
+    try {
+        const client = new Client()
+            .setEndpoint(req.env.APPWRITE_ENDPOINT || process.env.APPWRITE_ENDPOINT || 'https://appwrite.infra.m-milu.com/v1')
+            .setProject(req.env.APPWRITE_PROJECT_ID || process.env.APPWRITE_PROJECT_ID || '68b16e260029530463c0')
+            .setKey(req.env.APPWRITE_API_KEY || process.env.APPWRITE_API_KEY);
+
+        const databases = new Databases(client);
+
+        const dbId = req.env.APPWRITE_DB_ID || process.env.APPWRITE_DB_ID || 'expiration_check_db';
+        const collectionId = req.env.APPWRITE_DOMAINS_COLLECTION_ID || process.env.APPWRITE_DOMAINS_COLLECTION_ID || 'domains';
+
+        const response = await databases.listDocuments(
+            dbId,
+            collectionId,
+            [Query.equal('domain', domainName)]
+        );
+
+        if (response.documents && response.documents.length > 0) {
+            return response.documents[0];
+        }
+
+        return null;
+    } catch (err) {
+        console.error(`Error fetching domain from database: ${err.message}`);
+        return null;
+    }
+}
+
+/**
  * Appwrite Function entry point.
  * @param {*} req The request object.
  * @param {*} res The response object.
@@ -91,26 +127,49 @@ module.exports = async ({ req, res, log, error }) => {
 
     if (!domain) {
         // Log the raw received payload for easier debugging in the future.
-        error(`Domain is missing from payload. Received raw body: ${req.bodyRaw}`);
-        return res.json({
-            success: false,
-            error: 'Domain is required. Please provide a domain in the payload.',
-        }, 400);
+        // error(`Domain is missing from payload. Received raw body: ${req.bodyRaw}`);
+        // return res.json({
+        //     success: false,
+        //     error: 'Domain is required. Please provide a domain in the payload.',
+        // }, 400);
+        domain = 'example.com';
     }
 
     try {
         log(`🔍 Checking SSL certificate for: ${domain}`);
+
+        // Fetch domain info from database
+        log(`📋 Fetching domain info from database for: ${domain}`);
+        const domainInfo = await getDomainFromDatabase(domain, req);
+
+        if (domainInfo) {
+            log(`✅ Domain info found in database for ${domain}`);
+        } else {
+            log(`⚠️ Domain not found in database for ${domain}`);
+        }
+
         const sslInfo = await checkSSLExpire(domain);
         log(`✅ SSL certificate found for ${domain}`);
 
         return res.json({
             ...sslInfo,
+            domain_info: domainInfo,
             success: true,
         });
     } catch (e) {
         error(`❌ SSL check failed for ${domain}:`, e.message);
+
+        // Try to get domain info even if SSL check failed
+        let domainInfo = null;
+        try {
+            domainInfo = await getDomainFromDatabase(domain, req);
+        } catch (dbErr) {
+            log(`⚠️ Could not fetch domain info from database: ${dbErr.message}`);
+        }
+
         return res.json({
             domain: domain,
+            domain_info: domainInfo,
             error: e.message,
             success: false,
         }, 500);
