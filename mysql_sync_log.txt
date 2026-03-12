@@ -1,3 +1,25 @@
 2026-03-12T08:57:23.600Z | spawn | Spawned worker for stop | {"pid":29952,"payloadBytes":480315}
 2026-03-12T08:57:23.733Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
 2026-03-12T08:57:24.954Z | worker | Worker completed stop | {"success":true,"message":"Synced stop conversation 2f451004-ff5e-426e-8499-f99665e00f0a to MySQL | Synced 77 cursorDiskKV row(s) for conversation 2f451004-ff5e-426e-8499-f99665e00f0a to MySQL"}
+2026-03-12T09:03:09.816Z | spawn | Skipping worker spawn for gitCommit because MySQL sync is disabled
+2026-03-12T09:04:52.856Z | spawn | Spawned worker for afterFileEdit | {"pid":6632,"payloadBytes":305}
+2026-03-12T09:04:52.988Z | worker | Worker received afterFileEdit | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","capturedFiles","lastHookEvent"]}
+2026-03-12T09:04:53.038Z | worker | Worker completed afterFileEdit | {"success":true,"message":"Synced afterFileEdit conversation 2f451004-ff5e-426e-8499-f99665e00f0a to MySQL"}
+2026-03-12T09:05:11.001Z | spawn | Spawned worker for afterFileEdit | {"pid":29776,"payloadBytes":291}
+2026-03-12T09:05:11.134Z | worker | Worker received afterFileEdit | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","capturedFiles","lastHookEvent"]}
+2026-03-12T09:05:11.166Z | worker | Worker completed afterFileEdit | {"success":true,"message":"Synced afterFileEdit conversation 2f451004-ff5e-426e-8499-f99665e00f0a to MySQL"}
+2026-03-12T09:05:23.599Z | spawn | Spawned worker for stop | {"pid":5032,"payloadBytes":793343}
+2026-03-12T09:05:23.733Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
+2026-03-12T09:05:24.660Z | worker | Worker completed stop | {"success":true,"message":"Synced stop conversation 2f451004-ff5e-426e-8499-f99665e00f0a to MySQL | Synced 142 cursorDiskKV row(s) for conversation 2f451004-ff5e-426e-8499-f99665e00f0a to MySQL"}
+2026-03-12T09:07:46.740Z | spawn | Spawned worker for afterFileEdit | {"pid":27600,"payloadBytes":335}
+2026-03-12T09:07:46.874Z | worker | Worker received afterFileEdit | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","capturedFiles","lastHookEvent"]}
+2026-03-12T09:07:46.907Z | worker | Worker completed afterFileEdit | {"success":true,"message":"Synced afterFileEdit conversation 1a796428-4026-423b-82a6-0734d21de750 to MySQL"}
+2026-03-12T09:07:59.011Z | spawn | Spawned worker for afterFileEdit | {"pid":30268,"payloadBytes":325}
+2026-03-12T09:07:59.155Z | worker | Worker received afterFileEdit | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","capturedFiles","lastHookEvent"]}
+2026-03-12T09:07:59.225Z | worker | Worker completed afterFileEdit | {"success":true,"message":"Synced afterFileEdit conversation 1a796428-4026-423b-82a6-0734d21de750 to MySQL"}
+2026-03-12T09:08:01.280Z | spawn | Spawned worker for afterFileEdit | {"pid":29232,"payloadBytes":339}
+2026-03-12T09:08:01.414Z | worker | Worker received afterFileEdit | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","capturedFiles","lastHookEvent"]}
+2026-03-12T09:08:01.447Z | worker | Worker completed afterFileEdit | {"success":true,"message":"Synced afterFileEdit conversation 1a796428-4026-423b-82a6-0734d21de750 to MySQL"}
+2026-03-12T09:09:22.024Z | spawn | Spawned worker for stop | {"pid":28688,"payloadBytes":633394}
+2026-03-12T09:09:22.153Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
+2026-03-12T09:09:23.399Z | worker | Worker completed stop | {"success":true,"message":"Synced stop conversation 1a796428-4026-423b-82a6-0734d21de750 to MySQL | Synced 89 cursorDiskKV row(s) for conversation 1a796428-4026-423b-82a6-0734d21de750 to MySQL"}
