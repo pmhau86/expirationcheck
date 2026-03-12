@@ -15,7 +15,8 @@ import {
   Dashboard,
   Domain,
   Person,
-  Language
+  Language,
+  Login
 } from '@mui/icons-material'
 import { theme } from '@/theme/muiTheme'
 import { DomainDashboard } from '@/components/pages/domain/DomainDashboard'
@@ -90,6 +91,16 @@ function Navigation() {
               }}
             >
               Users
+            </Button>
+            <Button
+              variant="text"
+              startIcon={<Login />}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 'bold'
+              }}
+            >
+              LogIn
             </Button>
           </Box>
         </Toolbar>
