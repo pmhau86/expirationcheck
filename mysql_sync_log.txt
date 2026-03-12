@@ -47,3 +47,21 @@
 2026-03-12T09:25:48.633Z | spawn | Spawned worker for stop | {"pid":27228,"payloadBytes":204826}
 2026-03-12T09:25:48.767Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
 2026-03-12T09:25:48.816Z | worker | Worker failed | "Table 'cursor-history.cursorDiskKV' doesn't exist"
+2026-03-12T09:30:33.343Z | spawn | Spawned worker for gitCommit | {"pid":25668,"payloadBytes":3775}
+2026-03-12T09:30:33.477Z | worker | Worker received gitCommit | {"payloadKeys":["payloadUserEmail","commit","links"]}
+2026-03-12T09:30:33.741Z | worker | Worker completed gitCommit | {"success":true,"message":"Synced commit b6772867b4097280f47d39319df7de0dbcda494f and 19 link(s) to MySQL"}
+2026-03-12T09:39:03.232Z | spawn | Spawned worker for stop | {"pid":13532,"payloadBytes":60112}
+2026-03-12T09:39:03.376Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
+2026-03-12T09:39:03.701Z | worker | Worker completed stop | {"success":true,"message":"Synced stop conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL | Synced 16 cursorDiskKV row(s) for conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL"}
+2026-03-12T09:40:20.302Z | spawn | Spawned worker for stop | {"pid":30704,"payloadBytes":185600}
+2026-03-12T09:40:20.435Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
+2026-03-12T09:40:20.911Z | worker | Worker completed stop | {"success":true,"message":"Synced stop conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL | Synced 35 cursorDiskKV row(s) for conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL"}
+2026-03-12T09:42:02.113Z | spawn | Spawned worker for stop | {"pid":13940,"payloadBytes":292429}
+2026-03-12T09:42:02.274Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
+2026-03-12T09:42:02.794Z | worker | Worker completed stop | {"success":true,"message":"Synced stop conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL | Synced 63 cursorDiskKV row(s) for conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL"}
+2026-03-12T09:43:10.328Z | spawn | Spawned worker for stop | {"pid":14568,"payloadBytes":437493}
+2026-03-12T09:43:10.461Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
+2026-03-12T09:43:11.319Z | worker | Worker completed stop | {"success":true,"message":"Synced stop conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL | Synced 88 cursorDiskKV row(s) for conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL"}
+2026-03-12T09:43:44.039Z | spawn | Spawned worker for stop | {"pid":26416,"payloadBytes":528235}
+2026-03-12T09:43:44.171Z | worker | Worker received stop | {"payloadKeys":["payloadUserEmail","conversationId","agent","workspaceRoot","projectName","title","summary","aiSummary","relevantFiles","attachedFolders","capturedFiles","searchableText","createdAt","updatedAt","lastHookEvent","cursorDiskKvRows"]}
+2026-03-12T09:43:44.781Z | worker | Worker completed stop | {"success":true,"message":"Synced stop conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL | Synced 94 cursorDiskKV row(s) for conversation 7cc36f0d-1165-436e-8230-9734e8036944 to MySQL"}
